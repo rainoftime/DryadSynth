@@ -1,21 +1,23 @@
 import com.microsoft.z3.*;
+
 import java.util.*;
+
 import com.microsoft.z3.enumerations.Z3_ast_print_mode;
 
 public class CNFTest {
-    public static void main(String [] args) {
+    public static void main(String[] args) {
         Context ctx = new Context();
         ctx.setPrintMode(Z3_ast_print_mode.Z3_PRINT_SMTLIB_FULL);
         FuncDecl f = ctx.mkFuncDecl("f", new Sort[]{ctx.mkIntSort(), ctx.mkIntSort()}, ctx.mkIntSort());
-        BoolExpr x = (BoolExpr)ctx.mkConst("x", ctx.mkBoolSort());
-        BoolExpr y = (BoolExpr)ctx.mkConst("y", ctx.mkBoolSort());
-        BoolExpr z = (BoolExpr)ctx.mkConst("z", ctx.mkBoolSort());
-        BoolExpr a = (BoolExpr)ctx.mkConst("a", ctx.mkBoolSort());
-        BoolExpr b = (BoolExpr)ctx.mkConst("b", ctx.mkBoolSort());
-        BoolExpr c = (BoolExpr)ctx.mkConst("c", ctx.mkBoolSort());
+        BoolExpr x = (BoolExpr) ctx.mkConst("x", ctx.mkBoolSort());
+        BoolExpr y = (BoolExpr) ctx.mkConst("y", ctx.mkBoolSort());
+        BoolExpr z = (BoolExpr) ctx.mkConst("z", ctx.mkBoolSort());
+        BoolExpr a = (BoolExpr) ctx.mkConst("a", ctx.mkBoolSort());
+        BoolExpr b = (BoolExpr) ctx.mkConst("b", ctx.mkBoolSort());
+        BoolExpr c = (BoolExpr) ctx.mkConst("c", ctx.mkBoolSort());
 
-        IntExpr p = (IntExpr)ctx.mkConst("p", ctx.mkIntSort());
-        IntExpr q = (IntExpr)ctx.mkConst("q", ctx.mkIntSort());
+        IntExpr p = (IntExpr) ctx.mkConst("p", ctx.mkIntSort());
+        IntExpr q = (IntExpr) ctx.mkConst("q", ctx.mkIntSort());
         // BoolExpr spec = ctx.mkOr(
         //                     ctx.mkGe(
         //                         (IntExpr)f.apply(a, b),
@@ -38,17 +40,17 @@ public class CNFTest {
         //                     );
 
         Expr spec = ctx.mkOr(
-                (BoolExpr)ctx.mkITE(
-                   x,
-                   y,
-                   z
-                  ),
-                (BoolExpr)ctx.mkITE(
-                   a,
-                   b,
-                   c
-                  )
-                );
+                (BoolExpr) ctx.mkITE(
+                        x,
+                        y,
+                        z
+                ),
+                (BoolExpr) ctx.mkITE(
+                        a,
+                        b,
+                        c
+                )
+        );
 
         Expr and = ctx.mkAnd(x, y, z, a);
         System.out.println("and length: " + and.getArgs().length);
@@ -101,7 +103,7 @@ public class CNFTest {
         System.out.println("f DeclKindind: " + f.getDeclKind());    // Z3_OP_UNINTERPRETED
         FuncDecl specfunc = spec.getFuncDecl();
         System.out.println("specfunc DeclKindind: " + specfunc.getDeclKind());      // Z3_OP_OR
-        Expr withFunc = ctx.mkOr(ctx.mkGe((ArithExpr)f.apply(p, q), ctx.mkInt(0)), x);
+        Expr withFunc = ctx.mkOr(ctx.mkGe((ArithExpr) f.apply(p, q), ctx.mkInt(0)), x);
         FuncDecl withfunc = withFunc.getFuncDecl();
         System.out.println("withfunc DeclKindind: " + withfunc.getDeclKind());      // Z3_OP_OR
         FuncDecl cons = x.getFuncDecl();

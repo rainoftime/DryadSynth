@@ -1,6 +1,8 @@
 import java.util.*;
+
 import com.microsoft.z3.enumerations.Z3_ast_print_mode;
 import com.microsoft.z3.*;
+
 import java.util.logging.Logger;
 
 public class AT extends Thread {
@@ -65,7 +67,7 @@ public class AT extends Thread {
 
         Map<String, Expr[]> requestUsedArgs = problem.requestSyntaxUsedArgs;
         Expr[] usedVars = requestUsedArgs.entrySet().iterator().next().getValue();
-        for (Expr var: usedVars) {
+        for (Expr var : usedVars) {
             vars.put(var.toString(), var);
         }
 
@@ -81,12 +83,12 @@ public class AT extends Thread {
         }
         if (this.transfunc != null) {
             Set<Region> regions = this.transfunc.getRegions();
-            for (Region r1: regions) {
-                for (Region r2: regions) {
+            for (Region r1 : regions) {
+                for (Region r2 : regions) {
                     if (r1 == r2) {
                         continue;
                     }
-                    BoolExpr intersec = ctx.mkAnd((BoolExpr)r1.toExpr(), (BoolExpr)r2.toExpr());
+                    BoolExpr intersec = ctx.mkAnd((BoolExpr) r1.toExpr(), (BoolExpr) r2.toExpr());
                     Solver s = ctx.mkSolver();
                     s.add(intersec);
                     Status r = s.check();
@@ -100,10 +102,10 @@ public class AT extends Thread {
         return false;
     }
 
-    public void run () {
+    public void run() {
         env.runningThreads.incrementAndGet();
         this.solve();
-        synchronized(env) {
+        synchronized (env) {
             env.notify();
         }
         env.runningThreads.decrementAndGet();
@@ -120,7 +122,7 @@ public class AT extends Thread {
 
         boolean visited;
         Expr expr, newExpr, body;
-        Expr [] args, newArgsArray;
+        Expr[] args, newArgsArray;
         List<Expr> newArgs = new ArrayList<Expr>();
         while (!todo.empty()) {
             expr = todo.peek();
@@ -131,7 +133,7 @@ public class AT extends Thread {
                 visited = true;
                 newArgs.clear();
                 args = expr.getArgs();
-                for (Expr arg: args) {
+                for (Expr arg : args) {
                     if (!cache.containsKey(arg)) {
                         todo.push(arg);
                         visited = false;
@@ -143,8 +145,8 @@ public class AT extends Thread {
                     boolean mod = false;
                     todo.pop();
                     newArgsArray = newArgs.toArray(new Expr[newArgs.size()]);
-                    if(expr.isEq()) {
-                        for (Expr arg: newArgsArray) {
+                    if (expr.isEq()) {
+                        for (Expr arg : newArgsArray) {
                             if (arg.isConst()) {
                                 mod = mod;
                             } else if (arg.isModulus()) {
@@ -152,18 +154,18 @@ public class AT extends Thread {
                             }
                         }
                     }
-                    if(mod) {
+                    if (mod) {
                         newExpr = ctx.mkTrue();
                     } else {
                         newExpr = expr.update(newArgsArray);
                     }
                     cache.put(expr, newExpr);
                 }
-            } else if(expr.isQuantifier()) {
-                body = ((Quantifier)expr).getBody();
+            } else if (expr.isQuantifier()) {
+                body = ((Quantifier) expr).getBody();
                 if (cache.containsKey(body)) {
                     todo.pop();
-                    newExpr = expr.update(new Expr[]{ cache.get(body) });
+                    newExpr = expr.update(new Expr[]{cache.get(body)});
                     cache.put(expr, newExpr);
                 } else {
                     todo.push(body);
@@ -195,7 +197,7 @@ public class AT extends Thread {
         inv = post_processing(inv);
         Tactic simp = ctx.repeat(ctx.then(ctx.mkTactic("simplify"), ctx.mkTactic("ctx-simplify"), ctx.mkTactic("ctx-solver-simplify")), 8);
         Goal g = ctx.mkGoal(false, false, false);
-        g.add((BoolExpr)inv);
+        g.add((BoolExpr) inv);
         inv = simp.apply(g).getSubgoals()[0].AsBoolExpr();
         logger.info("After post processing:");
         logger.info(inv.toString());
@@ -205,22 +207,22 @@ public class AT extends Thread {
         }
         DefinedFunc df = new DefinedFunc(ctx, problem.names.get(0), argParas, inv);
         logger.info("Checking if invariant is valid.");
-        BoolExpr e1 = ctx.mkImplies((BoolExpr)pre, (BoolExpr)inv);
+        BoolExpr e1 = ctx.mkImplies((BoolExpr) pre, (BoolExpr) inv);
         Expr invp = inv;
         for (Expr var : vars.values()) {
-           invp = invp.substitute(var,
-                   ctx.mkConst(var.toString() + "!", ctx.mkIntSort()));
+            invp = invp.substitute(var,
+                    ctx.mkConst(var.toString() + "!", ctx.mkIntSort()));
         }
         BoolExpr e2 = ctx.mkImplies(ctx.mkAnd(
-                   (BoolExpr)inv, (BoolExpr)this.trans
-                   ), (BoolExpr)invp);
-        BoolExpr e3 = ctx.mkImplies((BoolExpr)inv, (BoolExpr)post);
+                (BoolExpr) inv, (BoolExpr) this.trans
+        ), (BoolExpr) invp);
+        BoolExpr e3 = ctx.mkImplies((BoolExpr) inv, (BoolExpr) post);
         Solver s = ctx.mkSolver();
         s.add(ctx.mkNot(ctx.mkAnd(e1, e2, e3)));
         Status r = s.check();
-        if ( r == Status.UNSATISFIABLE ) {
+        if (r == Status.UNSATISFIABLE) {
             logger.info("Valid results");
-            this.results = new DefinedFunc[] {df};
+            this.results = new DefinedFunc[]{df};
         } else {
             this.results = null;
             logger.severe("Invalid results for AT algorithm");

@@ -1,6 +1,8 @@
 import java.util.*;
+
 import com.microsoft.z3.enumerations.Z3_ast_print_mode;
 import com.microsoft.z3.*;
+
 import java.util.logging.Logger;
 
 public class InvDnC extends Thread {
@@ -23,7 +25,7 @@ public class InvDnC extends Thread {
 
     public CEGISEnv syncenv;
 
-    public InvDnC (Context ctx, SygusProblem problem, Logger logger, SygusDispatcher.DnCType type, int iterLimit) {
+    public InvDnC(Context ctx, SygusProblem problem, Logger logger, SygusDispatcher.DnCType type, int iterLimit) {
         this.ctx = ctx;
         this.problem = problem;
         this.logger = logger;
@@ -31,7 +33,7 @@ public class InvDnC extends Thread {
         this.iterLimit = iterLimit;
     }
 
-    public InvDnC (Context ctx, Logger logger, CEGISEnv syncenv, SygusDispatcher.DnCType type, int iterLimit, SygusProblem problem) {
+    public InvDnC(Context ctx, Logger logger, CEGISEnv syncenv, SygusDispatcher.DnCType type, int iterLimit, SygusProblem problem) {
         this.ctx = ctx;
         this.syncenv = syncenv;
         // this.problem = this.syncenv.problem.translate(this.ctx);
@@ -58,10 +60,10 @@ public class InvDnC extends Thread {
         post = problem.invConstraints.get(name)[2].getDef();
     }
 
-    public void run () {
+    public void run() {
         syncenv.runningThreads.incrementAndGet();
         results = solve();
-        synchronized(syncenv) {
+        synchronized (syncenv) {
             syncenv.notify();
         }
         syncenv.runningThreads.decrementAndGet();
@@ -91,15 +93,15 @@ public class InvDnC extends Thread {
         for (int i = 1; i < subresults.size(); i++) {
             DefinedFunc[] subrslt = subresults.get(i);
             for (int j = 0; j < combined.length; j++) {
-                    Expr combinedSolution;
-                    if (this.dnctype == SygusDispatcher.DnCType.RECPOST) {
-                        combinedSolution = ctx.mkAnd((BoolExpr)combined[j].getDef().translate(ctx), 
-                            (BoolExpr)subrslt[j].getDef().translate(ctx));
-                    } else {       // if (this.dnctype == DnCType.CROSSPRE)
-                        combinedSolution = ctx.mkOr((BoolExpr)combined[j].getDef().translate(ctx), 
-                            (BoolExpr)subrslt[j].getDef().translate(ctx));
-                    }
-                    combined[j] = combined[j].replaceDef(combinedSolution);
+                Expr combinedSolution;
+                if (this.dnctype == SygusDispatcher.DnCType.RECPOST) {
+                    combinedSolution = ctx.mkAnd((BoolExpr) combined[j].getDef().translate(ctx),
+                            (BoolExpr) subrslt[j].getDef().translate(ctx));
+                } else {       // if (this.dnctype == DnCType.CROSSPRE)
+                    combinedSolution = ctx.mkOr((BoolExpr) combined[j].getDef().translate(ctx),
+                            (BoolExpr) subrslt[j].getDef().translate(ctx));
+                }
+                combined[j] = combined[j].replaceDef(combinedSolution);
             }
         }
         return combined;
@@ -175,10 +177,10 @@ public class InvDnC extends Thread {
         // pre first
         if (this.dnctype == SygusDispatcher.DnCType.RECPOST || this.dnctype == SygusDispatcher.DnCType.RCCRSS) {
             withoutArg = ctx.mkExists(
-                otherargs, pre, 0, new Pattern[] {}, new Expr[] {}, ctx.mkSymbol(""), ctx.mkSymbol(""));
+                    otherargs, pre, 0, new Pattern[]{}, new Expr[]{}, ctx.mkSymbol(""), ctx.mkSymbol(""));
         } else {
             withoutArg = ctx.mkForall(
-                otherargs, pre, 0, new Pattern[] {}, new Expr[] {}, ctx.mkSymbol(""), ctx.mkSymbol(""));
+                    otherargs, pre, 0, new Pattern[]{}, new Expr[]{}, ctx.mkSymbol(""), ctx.mkSymbol(""));
         }
         g.add(withoutArg);
         Expr prewoargQF = qe.apply(g).getSubgoals()[0].AsBoolExpr();
@@ -187,10 +189,10 @@ public class InvDnC extends Thread {
         // then post
         if (this.dnctype == SygusDispatcher.DnCType.RECPOST) {
             withoutArg = ctx.mkExists(
-                otherargs, post, 0, new Pattern[] {}, new Expr[] {}, ctx.mkSymbol(""), ctx.mkSymbol(""));
+                    otherargs, post, 0, new Pattern[]{}, new Expr[]{}, ctx.mkSymbol(""), ctx.mkSymbol(""));
         } else if (this.dnctype == SygusDispatcher.DnCType.CROSSPRE || this.dnctype == SygusDispatcher.DnCType.RCCRSS) {
             withoutArg = ctx.mkForall(
-                otherargs, post, 0, new Pattern[] {}, new Expr[] {}, ctx.mkSymbol(""), ctx.mkSymbol(""));
+                    otherargs, post, 0, new Pattern[]{}, new Expr[]{}, ctx.mkSymbol(""), ctx.mkSymbol(""));
         }
         g.reset();
         g.add(withoutArg);
@@ -199,7 +201,7 @@ public class InvDnC extends Thread {
 
         // check if pre => post
         Solver solver = ctx.mkSolver();
-        BoolExpr preipost = ctx.mkImplies((BoolExpr)prewoargQF, (BoolExpr)postwoargQF);
+        BoolExpr preipost = ctx.mkImplies((BoolExpr) prewoargQF, (BoolExpr) postwoargQF);
         solver.add(ctx.mkNot(preipost));
         Status status = solver.check();
         if (status != Status.UNSATISFIABLE) {
@@ -226,10 +228,10 @@ public class InvDnC extends Thread {
         System.arraycopy(primedOtherargs, 0, otherargswprime, otherargs.length, primedOtherargs.length);
         if (this.dnctype == SygusDispatcher.DnCType.RECPOST || this.dnctype == SygusDispatcher.DnCType.RCCRSS) {
             withoutArg = ctx.mkExists(
-                otherargswprime, trans, 0, new Pattern[] {}, new Expr[] {}, ctx.mkSymbol(""), ctx.mkSymbol(""));
+                    otherargswprime, trans, 0, new Pattern[]{}, new Expr[]{}, ctx.mkSymbol(""), ctx.mkSymbol(""));
         } else if (this.dnctype == SygusDispatcher.DnCType.CROSSPRE) {
             withoutArg = ctx.mkForall(
-                otherargswprime, trans, 0, new Pattern[] {}, new Expr[] {}, ctx.mkSymbol(""), ctx.mkSymbol(""));
+                    otherargswprime, trans, 0, new Pattern[]{}, new Expr[]{}, ctx.mkSymbol(""), ctx.mkSymbol(""));
         }
         g.reset();
         g.add(withoutArg);

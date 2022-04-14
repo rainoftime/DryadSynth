@@ -1,10 +1,13 @@
 import java.util.*;
+
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.*;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 import com.microsoft.z3.*;
+
 import java.util.logging.Logger;
 import java.util.logging.Level;
+
 import com.microsoft.z3.enumerations.Z3_ast_print_mode;
 
 public class SSIRun {
@@ -13,9 +16,9 @@ public class SSIRun {
         long startTime = System.currentTimeMillis();
 
         int numCore = Runtime.getRuntime().availableProcessors();
-        
 
-        if (args.length == 2)  {
+
+        if (args.length == 2) {
             numCore = Integer.parseInt(args[1]);
         }
 
@@ -37,10 +40,10 @@ public class SSIRun {
         parser.setErrorHandler(es);
 
         ParseTree tree;
-        try{
+        try {
             tree = parser.start();
             logger.info("Accepted");
-        } catch(Exception ex) {
+        } catch (Exception ex) {
             logger.info("Not Accepted");
             return;
         }
@@ -58,18 +61,17 @@ public class SSIRun {
         }
 
 
-
         SSI ssi = new SSI(ctx, problem, logger, numCore);
         ssi.run();
 
-		// ANTLRInputStream is deprecated as of antlr 4.7, use it with antlr 4.5 only
-		for (DefinedFunc df: ssi.results) {
-			String rawResult = df.toString();
+        // ANTLRInputStream is deprecated as of antlr 4.7, use it with antlr 4.5 only
+        for (DefinedFunc df : ssi.results) {
+            String rawResult = df.toString();
             // When output size is too large, run regexp replace instead
             rawResult = rawResult.replaceAll("\\(\\s*-\\s+(\\d+)\\s*\\)", "-$1");
             rawResult = rawResult.replaceAll("\\s+", " ");
             System.out.println(rawResult);
-		}
+        }
 
         long estimatedTime = System.currentTimeMillis() - startTime;
         logger.info("Runtime: " + estimatedTime);
@@ -78,9 +80,9 @@ public class SSIRun {
     }
 }
 
-class CustomErrorStrategy extends DefaultErrorStrategy{
+class CustomErrorStrategy extends DefaultErrorStrategy {
     @Override
-    public void reportError(Parser recognizer, RecognitionException e){
+    public void reportError(Parser recognizer, RecognitionException e) {
         throw e;
     }
 }

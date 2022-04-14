@@ -1,20 +1,21 @@
 import java.util.*;
+
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 
 public class OptionTest {
-    public static void main(String [] args) throws Exception {
+    public static void main(String[] args) throws Exception {
         OptionParser parser = new OptionParser();
         parser.acceptsAll(Arrays.asList("m", "maxSAT"), "Enable maxSAT");
         parser.acceptsAll(Arrays.asList("h", "?", "help"), "Print help");
         parser.acceptsAll(Arrays.asList("t", "threads"), "Numbers of parallel threads to use")
-            .withRequiredArg().ofType(Integer.class).defaultsTo(Runtime.getRuntime().availableProcessors());
+                .withRequiredArg().ofType(Integer.class).defaultsTo(Runtime.getRuntime().availableProcessors());
         parser.acceptsAll(Arrays.asList("f", "minFinite"), "Timeout of finite region search, in minutes")
-            .withRequiredArg().ofType(Integer.class).defaultsTo(20);
+                .withRequiredArg().ofType(Integer.class).defaultsTo(20);
         parser.acceptsAll(Arrays.asList("i", "minInfinite"), "Timeout of infinite region search, in minutes")
-            .withRequiredArg().ofType(Integer.class).defaultsTo(5);
+                .withRequiredArg().ofType(Integer.class).defaultsTo(5);
         parser.acceptsAll(Arrays.asList("b", "formattingBound"), "Bound of output size to used string formatting instead of parser formatting")
-            .withRequiredArg().ofType(Integer.class).defaultsTo(65535);
+                .withRequiredArg().ofType(Integer.class).defaultsTo(65535);
         parser.acceptsAll(Arrays.asList("C", "CEGISOnly"), "Run synthesiszer in CEGIS mode only, disable all decidable fragments");
         parser.acceptsAll(Arrays.asList("M", "modeCheckOnly"), "Run mode check to determine fragment of the problem only, skipping all synthesis");
         parser.acceptsAll(Arrays.asList("v", "verbose"), "Enable verbose output of logs to stdout");
@@ -25,16 +26,16 @@ public class OptionTest {
             return;
         }
         System.out.println("maxSAT:" + options.has("m"));
-        System.out.println("threads:" + (Integer)options.valuesOf("t").get(0));
-        System.out.println("minFinite:" + (Integer)options.valuesOf("f").get(0));
-        System.out.println("minInfinite:" + (Integer)options.valuesOf("i").get(0));
-        System.out.println("formattingBound:" + (Integer)options.valuesOf("b").get(0));
+        System.out.println("threads:" + (Integer) options.valuesOf("t").get(0));
+        System.out.println("minFinite:" + (Integer) options.valuesOf("f").get(0));
+        System.out.println("minInfinite:" + (Integer) options.valuesOf("i").get(0));
+        System.out.println("formattingBound:" + (Integer) options.valuesOf("b").get(0));
         System.out.println("CEGISOnly:" + options.has("C"));
         System.out.println("modeCheckOnly:" + options.has("M"));
         System.out.println("verbose:" + options.has("v"));
         List<?> nargsl = options.nonOptionArguments();
         if (nargsl.size() >= 1) {
-            String filename = (String)nargsl.get(0);
+            String filename = (String) nargsl.get(0);
             System.out.println("Filename:" + filename);
         }
     }

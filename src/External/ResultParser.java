@@ -1,4 +1,5 @@
 import java.util.*;
+
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.*;
 import com.microsoft.z3.*;
@@ -15,6 +16,7 @@ public class ResultParser extends SygusBaseListener {
 
     Context z3ctx;
     OpDispatcher opDis;
+
     public ResultParser(Context z3ctx, OpDispatcher opDis) {
         this.z3ctx = z3ctx;
         this.opDis = opDis;
@@ -41,16 +43,17 @@ public class ResultParser extends SygusBaseListener {
             }
         }
     }
-    public void enterFunDefCmd(SygusParser.FunDefCmdContext ctx){
+
+    public void enterFunDefCmd(SygusParser.FunDefCmdContext ctx) {
         inFuncDef = true;
         defFuncVars = new LinkedHashMap<String, Expr>();
     }
 
-    public void exitFunDefCmd(SygusParser.FunDefCmdContext ctx){
+    public void exitFunDefCmd(SygusParser.FunDefCmdContext ctx) {
         String name = ctx.symbol().getText();
         Expr[] argList = defFuncVars.values().toArray(new Expr[defFuncVars.size()]);
-        Expr def = (Expr)termStack.pop();
-        ASTGeneral ast = (ASTGeneral)astStack.pop();
+        Expr def = (Expr) termStack.pop();
+        ASTGeneral ast = (ASTGeneral) astStack.pop();
         String[] strArgs = new String[argList.length];
         for (int i = 0; i < strArgs.length; i++) {
             strArgs[i] = argList[i].toString();
@@ -62,7 +65,7 @@ public class ResultParser extends SygusBaseListener {
 
     Sort strToSort(String name) {
         Sort sort;
-        switch(name) {
+        switch (name) {
             case "Int":
                 sort = z3ctx.getIntSort();
                 break;
@@ -74,7 +77,7 @@ public class ResultParser extends SygusBaseListener {
                 break;
             default:
                 sort = null;
-            }
+        }
         return sort;
     }
 
@@ -101,38 +104,38 @@ public class ResultParser extends SygusBaseListener {
     }
 
     String literalToStr(SygusParser.LiteralContext ctx) {
-        if (ctx.intConst()!= null) {
+        if (ctx.intConst() != null) {
             return ctx.intConst().getText();
         }
-        if (ctx.realConst()!= null) {
+        if (ctx.realConst() != null) {
             return ctx.realConst().getText();
         }
-        if (ctx.boolConst()!= null) {
+        if (ctx.boolConst() != null) {
             return ctx.boolConst().getText();
         }
         return null;
     }
 
     Expr literalToExpr(SygusParser.LiteralContext ctx) {
-        if (ctx.intConst()!= null) {
+        if (ctx.intConst() != null) {
             return z3ctx.mkInt(ctx.intConst().getText());
         }
-        if (ctx.realConst()!= null) {
+        if (ctx.realConst() != null) {
             return z3ctx.mkReal(ctx.realConst().getText());
         }
-        if (ctx.boolConst()!= null) {
+        if (ctx.boolConst() != null) {
             return ctx.boolConst().getText().equals("true") ? z3ctx.mkTrue() : z3ctx.mkFalse();
         }
         return null;
     }
 
-    public void exitTerm(SygusParser.TermContext ctx){
+    public void exitTerm(SygusParser.TermContext ctx) {
         if (inFuncDef) {
-            if (ctx.getChildCount()!= 1) {
+            if (ctx.getChildCount() != 1) {
                 List<Expr> args = new ArrayList<Expr>();
                 Object top = termStack.pop();
                 while (top != ctx) {
-                    args.add(0, (Expr)top);
+                    args.add(0, (Expr) top);
                     top = termStack.pop();
                 }
                 String name = ctx.symbol().getText();
@@ -140,8 +143,8 @@ public class ResultParser extends SygusBaseListener {
                 termStack.push(res);
                 List<ASTGeneral> ast_list = new ArrayList<ASTGeneral>();
                 Object ast_top = astStack.pop();
-                while(ast_top != ctx) {
-                    ast_list.add(0, (ASTGeneral)ast_top);
+                while (ast_top != ctx) {
+                    ast_list.add(0, (ASTGeneral) ast_top);
                     ast_top = astStack.pop();
                 }
                 ASTGeneral tree = new ASTGeneral(name, ast_list.toArray(new ASTGeneral[ast_list.size()]));

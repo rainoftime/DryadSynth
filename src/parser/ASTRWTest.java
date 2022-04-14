@@ -1,8 +1,9 @@
 import java.util.*;
+
 import com.microsoft.z3.*;
 
 public class ASTRWTest {
-    public static void main(String [] args) {
+    public static void main(String[] args) {
         ASTGeneral a = new ASTGeneral("+", new ASTGeneral("x"), new ASTGeneral("y"));
         System.out.println(a.toString());
         System.out.println((new ASTGeneral(a)).toString());
@@ -14,10 +15,10 @@ public class ASTRWTest {
         ASTGeneral d = c.substitute(new ASTGeneral("x"), new ASTGeneral("x1"));
         System.out.println(c.toString());
         System.out.println(d.toString());
-        ASTGeneral e = d.update(new ASTGeneral[] {new ASTGeneral("m1"), new ASTGeneral("m2")});
+        ASTGeneral e = d.update(new ASTGeneral[]{new ASTGeneral("m1"), new ASTGeneral("m2")});
         System.out.println(e.toString());
         ASTGeneral d1 = c.substitute(new ASTGeneral[]{new ASTGeneral("x"), new ASTGeneral("y")},
-                                     new ASTGeneral[]{new ASTGeneral("x1"), new ASTGeneral("y1")});
+                new ASTGeneral[]{new ASTGeneral("x1"), new ASTGeneral("y1")});
         System.out.println(d1.toString());
 
         Context ctx = new Context();

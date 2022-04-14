@@ -1,13 +1,16 @@
 import java.util.*;
+
 import com.microsoft.z3.*;
 
 public class DnCProblem extends SygusProblem {
     DnCProblem(SygusProblem pblm) {
         super(pblm);
     }
+
     DnCProblem(DnCProblem pblm) {
         super(pblm);
     }
+
     public DnCProblem createSubProblem(Expr subExpr, Expr[] subArgs) {
         DnCProblem subPblm = new DnCProblem(this);
         subPblm.names.clear();
@@ -48,7 +51,7 @@ public class DnCProblem extends SygusProblem {
         // TODO: Use some more general analysis
         String[] rule = new String[subSolution.getArgs().length + 1];
         rule[0] = name;
-        for (int i = 1; i < rule.length; i++){
+        for (int i = 1; i < rule.length; i++) {
             rule[i] = "Start";
         }
         this.cfgs.get(targetName).grammarRules.get("Start").add(rule);

@@ -4,12 +4,13 @@ import java.io.*;
 public class EUSolver extends ExternalSolver {
 
     String entryPath;
+
     public EUSolver(String entryPath) {
         this.entryPath = entryPath;
     }
 
     @Override
-    public String solveEncoded(String problem, long timeout) throws Exception{
+    public String solveEncoded(String problem, long timeout) throws Exception {
         this.running = true;
         File inputFile = File.createTempFile("sygus", ".sl");
         BufferedWriter bw = new BufferedWriter(new FileWriter(inputFile));
@@ -18,7 +19,7 @@ public class EUSolver extends ExternalSolver {
         inputFile.deleteOnExit();
 
         Process process =
-            Runtime.getRuntime().exec(this.entryPath + " " + inputFile.getAbsolutePath());
+                Runtime.getRuntime().exec(this.entryPath + " " + inputFile.getAbsolutePath());
         Worker worker = new Worker(process);
         worker.start();
         try {
@@ -31,7 +32,7 @@ public class EUSolver extends ExternalSolver {
                 return worker.output;
             }
             throw new Exception();
-        } catch(InterruptedException ex) {
+        } catch (InterruptedException ex) {
             worker.interrupt();
             Thread.currentThread().interrupt();
             throw ex;
@@ -45,15 +46,17 @@ public class EUSolver extends ExternalSolver {
         private final Process process;
         private Integer exit;
         private String output;
+
         private Worker(Process process) {
             this.process = process;
             this.output = "";
         }
+
         public void run() {
-            try { 
+            try {
                 String line;
                 BufferedReader stdout =
-                    new BufferedReader(new InputStreamReader(process.getInputStream()));
+                        new BufferedReader(new InputStreamReader(process.getInputStream()));
                 while ((line = stdout.readLine()) != null) {
                     output += line;
                 }
@@ -64,6 +67,6 @@ public class EUSolver extends ExternalSolver {
             } catch (IOException ignore) {
                 return;
             }
-        }  
+        }
     }
 }

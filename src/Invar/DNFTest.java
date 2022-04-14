@@ -1,4 +1,5 @@
 import java.util.*;
+
 import com.microsoft.z3.*;
 import com.microsoft.z3.enumerations.Z3_ast_print_mode;
 
@@ -6,16 +7,16 @@ public class DNFTest {
     public static void main(String[] args) {
         Context ctx = new Context();
         ctx.setPrintMode(Z3_ast_print_mode.Z3_PRINT_SMTLIB_FULL);
-        ArithExpr w = (ArithExpr)ctx.mkConst("w", ctx.mkIntSort());
-        ArithExpr a = (ArithExpr)ctx.mkConst("a", ctx.mkIntSort());
-        ArithExpr b = (ArithExpr)ctx.mkConst("b", ctx.mkIntSort());
-        ArithExpr c = (ArithExpr)ctx.mkConst("c", ctx.mkIntSort());
-        BoolExpr x = (BoolExpr)ctx.mkConst("x", ctx.mkBoolSort());
-        BoolExpr y = (BoolExpr)ctx.mkConst("y", ctx.mkBoolSort());
-        BoolExpr z = (BoolExpr)ctx.mkConst("z", ctx.mkBoolSort());
-        BoolExpr r = (BoolExpr)ctx.mkConst("r", ctx.mkBoolSort());
-        BoolExpr p = (BoolExpr)ctx.mkConst("p", ctx.mkBoolSort());
-        BoolExpr q = (BoolExpr)ctx.mkConst("q", ctx.mkBoolSort());
+        ArithExpr w = (ArithExpr) ctx.mkConst("w", ctx.mkIntSort());
+        ArithExpr a = (ArithExpr) ctx.mkConst("a", ctx.mkIntSort());
+        ArithExpr b = (ArithExpr) ctx.mkConst("b", ctx.mkIntSort());
+        ArithExpr c = (ArithExpr) ctx.mkConst("c", ctx.mkIntSort());
+        BoolExpr x = (BoolExpr) ctx.mkConst("x", ctx.mkBoolSort());
+        BoolExpr y = (BoolExpr) ctx.mkConst("y", ctx.mkBoolSort());
+        BoolExpr z = (BoolExpr) ctx.mkConst("z", ctx.mkBoolSort());
+        BoolExpr r = (BoolExpr) ctx.mkConst("r", ctx.mkBoolSort());
+        BoolExpr p = (BoolExpr) ctx.mkConst("p", ctx.mkBoolSort());
+        BoolExpr q = (BoolExpr) ctx.mkConst("q", ctx.mkBoolSort());
 
         // Expr e = ctx.mkNot(ctx.mkNot(ctx.mkGe(w, ctx.mkInt(2))));
 
@@ -40,17 +41,17 @@ public class DNFTest {
         //         );
 
         Expr e = ctx.mkAnd(
-                ctx.mkNot((BoolExpr)ctx.mkITE(
-                   x,
-                   y,
-                   z
-                  )),
-                ctx.mkNot((BoolExpr)ctx.mkITE(
-                   x,
-                   y,
-                   z
-                  ))
-                );
+                ctx.mkNot((BoolExpr) ctx.mkITE(
+                        x,
+                        y,
+                        z
+                )),
+                ctx.mkNot((BoolExpr) ctx.mkITE(
+                        x,
+                        y,
+                        z
+                ))
+        );
 
         // Expr e = ctx.mkOr(ctx.mkNot(ctx.mkNot(ctx.mkOr(x, y))), ctx.mkNot(ctx.mkOr(ctx.mkAnd(y, z), ctx.mkNot(x))));
 

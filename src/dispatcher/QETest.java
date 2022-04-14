@@ -1,11 +1,14 @@
 import java.util.*;
+
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.*;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 import com.microsoft.z3.*;
+
 import java.util.logging.Logger;
 import java.util.logging.FileHandler;
 import java.util.logging.SimpleFormatter;
+
 import com.microsoft.z3.enumerations.Z3_ast_print_mode;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -19,17 +22,17 @@ public class QETest {
         oParser.acceptsAll(Arrays.asList("h", "?", "help"), "Print help");
         oParser.acceptsAll(Arrays.asList("H", "heightsOnly"), "Only outputs entered heights and result heights for CEGIS algorithms (Would output vector length bound values in CEGIS for General track)");
         oParser.acceptsAll(Arrays.asList("t", "threads"), "Numbers of parallel threads to use")
-            .withRequiredArg().ofType(Integer.class).defaultsTo(Runtime.getRuntime().availableProcessors());
+                .withRequiredArg().ofType(Integer.class).defaultsTo(Runtime.getRuntime().availableProcessors());
         oParser.acceptsAll(Arrays.asList("l", "iterLimit"), "Limit of iterations per thread for CEGIS algorithm (0 means no limit)")
-            .withRequiredArg().ofType(Integer.class).defaultsTo(0);
+                .withRequiredArg().ofType(Integer.class).defaultsTo(0);
         oParser.acceptsAll(Arrays.asList("f", "minFinite"), "Timeout of finite region search, in minutes")
-            .withRequiredArg().ofType(Integer.class).defaultsTo(20);
+                .withRequiredArg().ofType(Integer.class).defaultsTo(20);
         oParser.acceptsAll(Arrays.asList("i", "minInfinite"), "Timeout of infinite region search, in minutes")
-            .withRequiredArg().ofType(Integer.class).defaultsTo(5);
+                .withRequiredArg().ofType(Integer.class).defaultsTo(5);
         oParser.acceptsAll(Arrays.asList("b", "formattingBound"), "Bound of output size to used string formatting instead of parser formatting")
-            .withRequiredArg().ofType(Integer.class).defaultsTo(65535);
+                .withRequiredArg().ofType(Integer.class).defaultsTo(65535);
         oParser.acceptsAll(Arrays.asList("eq", "EqBound"), "Bound of height for equations in branch condition")
-            .withRequiredArg().ofType(Integer.class).defaultsTo(0);
+                .withRequiredArg().ofType(Integer.class).defaultsTo(0);
         oParser.acceptsAll(Arrays.asList("C", "CEGISOnly"), "Run synthesiszer in CEGIS mode only, disable all decidable fragments");
         oParser.acceptsAll(Arrays.asList("F", "FHCEGIS"), "Enable Fixed Height CEGIS algorithm for INV benchamrks.");
         oParser.acceptsAll(Arrays.asList("I", "ITCEGIS"), "Enable Inductive Template in CEGIS algorithms");
@@ -42,12 +45,12 @@ public class QETest {
             return;
         }
 
-        int numCore = (Integer)options.valuesOf("t").get(0);
-        int iterLimit = (Integer)options.valuesOf("l").get(0);
-        int minFinite = (Integer)options.valuesOf("f").get(0);
-        int minInfinite = (Integer)options.valuesOf("i").get(0);
-        int formattingBound = (Integer)options.valuesOf("b").get(0);
-        int eqBound = (Integer)options.valuesOf("eq").get(0);
+        int numCore = (Integer) options.valuesOf("t").get(0);
+        int iterLimit = (Integer) options.valuesOf("l").get(0);
+        int minFinite = (Integer) options.valuesOf("f").get(0);
+        int minInfinite = (Integer) options.valuesOf("i").get(0);
+        int formattingBound = (Integer) options.valuesOf("b").get(0);
+        int eqBound = (Integer) options.valuesOf("eq").get(0);
         boolean maxsmtFlag = options.has("m");
 
         if (options.nonOptionArguments().size() < 1) {
@@ -56,7 +59,7 @@ public class QETest {
             return;
         }
 
-        String fn = (String)options.nonOptionArguments().get(0);
+        String fn = (String) options.nonOptionArguments().get(0);
 
         // ANTLRFileStream is deprecated as of antlr 4.7, use it with antlr 4.5 only
         ANTLRFileStream input = new ANTLRFileStream(fn);
@@ -84,10 +87,10 @@ public class QETest {
         parser.setErrorHandler(es);
 
         ParseTree tree;
-        try{
+        try {
             tree = parser.start();
             logger.info("Accepted");
-        } catch(Exception ex) {
+        } catch (Exception ex) {
             logger.info("Not Accepted");
             return;
         }
@@ -103,7 +106,7 @@ public class QETest {
         Map<String, DefinedFunc[]> invConstraints = extractor.invConstraints;
         DefinedFunc[] funcs = new DefinedFunc[3];
 
-        for(String key : invConstraints.keySet()) {
+        for (String key : invConstraints.keySet()) {
             funcs = invConstraints.get(key);
             for (int i = 0; i < 3; i++) {
                 logger.info("invConstraints " + i + " : " + funcs[i].getDef().toString());
@@ -113,34 +116,34 @@ public class QETest {
         Map<String, Expr[]> requestArgs = extractor.requestArgs;
         Expr[] argList = new Expr[17];
 
-        for(String key: requestArgs.keySet()){
+        for (String key : requestArgs.keySet()) {
             argList = requestArgs.get(key);
-            for(int i = 0; i < argList.length; i++){
+            for (int i = 0; i < argList.length; i++) {
                 logger.info("arg " + i + " : " + argList[i].toString());
             }
         }
 
         Quantifier preWithX = ctx.mkExists(
-               new Expr[] {argList[5], argList[13], argList[14], argList[15], argList[16]},
-               funcs[0].getDef(),
-               0,
-               new Pattern[] {},
-               new Expr[] {},
-               ctx.mkSymbol(""),
-               ctx.mkSymbol("")
-                );
+                new Expr[]{argList[5], argList[13], argList[14], argList[15], argList[16]},
+                funcs[0].getDef(),
+                0,
+                new Pattern[]{},
+                new Expr[]{},
+                ctx.mkSymbol(""),
+                ctx.mkSymbol("")
+        );
 
         Quantifier preWithoutX = ctx.mkExists(
-               new Expr[] {argList[0], argList[1], argList[2], argList[3], argList[4]
+                new Expr[]{argList[0], argList[1], argList[2], argList[3], argList[4]
                         , argList[6], argList[7], argList[8], argList[9], argList[10]
                         , argList[11], argList[12]},
-               funcs[0].getDef(),
-               0,
-               new Pattern[] {},
-               new Expr[] {},
-               ctx.mkSymbol(""),
-               ctx.mkSymbol("")
-                );
+                funcs[0].getDef(),
+                0,
+                new Pattern[]{},
+                new Expr[]{},
+                ctx.mkSymbol(""),
+                ctx.mkSymbol("")
+        );
 
         // logger.info("preWithX: " + preWithX.toString());
         // logger.info("preWithoutX: " + preWithoutX.toString());
@@ -156,37 +159,36 @@ public class QETest {
         Expr preWithoutXQFree = qe.apply(g).getSubgoals()[0].AsBoolExpr();
         logger.info("preWithoutXQFree: " + preWithoutXQFree.toString());
 
-        BoolExpr and = ctx.mkAnd((BoolExpr)preWithXQFree, (BoolExpr)preWithoutXQFree);
+        BoolExpr and = ctx.mkAnd((BoolExpr) preWithXQFree, (BoolExpr) preWithoutXQFree);
 
         Solver solver = ctx.mkSolver();
-        solver.add(ctx.mkNot(ctx.mkImplies((BoolExpr)funcs[0].getDef(), and)));
+        solver.add(ctx.mkNot(ctx.mkImplies((BoolExpr) funcs[0].getDef(), and)));
         Status status = solver.check();
 
         logger.info("Pre Status: " + status);
 
 
-
         Quantifier postWithX = ctx.mkForall(
-               new Expr[] {argList[5], argList[13], argList[14], argList[15], argList[16]},
-               funcs[2].getDef(),
-               0,
-               new Pattern[] {},
-               new Expr[] {},
-               ctx.mkSymbol(""),
-               ctx.mkSymbol("")
-                );
+                new Expr[]{argList[5], argList[13], argList[14], argList[15], argList[16]},
+                funcs[2].getDef(),
+                0,
+                new Pattern[]{},
+                new Expr[]{},
+                ctx.mkSymbol(""),
+                ctx.mkSymbol("")
+        );
 
         Quantifier postWithoutX = ctx.mkForall(
-               new Expr[] {argList[0], argList[1], argList[2], argList[3], argList[4]
+                new Expr[]{argList[0], argList[1], argList[2], argList[3], argList[4]
                         , argList[6], argList[7], argList[8], argList[9], argList[10]
                         , argList[11], argList[12]},
-               funcs[2].getDef(),
-               0,
-               new Pattern[] {},
-               new Expr[] {},
-               ctx.mkSymbol(""),
-               ctx.mkSymbol("")
-                );
+                funcs[2].getDef(),
+                0,
+                new Pattern[]{},
+                new Expr[]{},
+                ctx.mkSymbol(""),
+                ctx.mkSymbol("")
+        );
 
         logger.info("postWithX: " + postWithX.toString());
         logger.info("postWithoutX: " + postWithoutX.toString());
@@ -201,14 +203,13 @@ public class QETest {
         Expr postWithoutXQFree = qe.apply(g).getSubgoals()[0].AsBoolExpr();
         logger.info("postWithoutXQFree: " + postWithoutXQFree.simplify().toString());
 
-        BoolExpr or = ctx.mkOr((BoolExpr)postWithXQFree, (BoolExpr)postWithoutXQFree);
+        BoolExpr or = ctx.mkOr((BoolExpr) postWithXQFree, (BoolExpr) postWithoutXQFree);
 
         solver.reset();
-        solver.add(ctx.mkNot(ctx.mkImplies((BoolExpr)funcs[2].getDef(), or)));
+        solver.add(ctx.mkNot(ctx.mkImplies((BoolExpr) funcs[2].getDef(), or)));
         status = solver.check();
 
         logger.info("Post Status: " + status);
-
 
 
         Expr[] primedArgs = new Expr[argList.length];
@@ -218,30 +219,30 @@ public class QETest {
         }
 
         Quantifier transWithX = ctx.mkExists(
-               new Expr[] {argList[5], argList[13], argList[14], argList[15], argList[16]
+                new Expr[]{argList[5], argList[13], argList[14], argList[15], argList[16]
                         , primedArgs[5], primedArgs[13], primedArgs[14], primedArgs[15], primedArgs[16]},
-               funcs[1].getDef(),
-               0,
-               new Pattern[] {},
-               new Expr[] {},
-               ctx.mkSymbol(""),
-               ctx.mkSymbol("")
-                );
+                funcs[1].getDef(),
+                0,
+                new Pattern[]{},
+                new Expr[]{},
+                ctx.mkSymbol(""),
+                ctx.mkSymbol("")
+        );
 
         Quantifier transWithoutX = ctx.mkExists(
-               new Expr[] {argList[0], argList[1], argList[2], argList[3], argList[4]
+                new Expr[]{argList[0], argList[1], argList[2], argList[3], argList[4]
                         , argList[6], argList[7], argList[8], argList[9], argList[10]
                         , argList[11], argList[12]
                         , primedArgs[0], primedArgs[1], primedArgs[2], primedArgs[3], primedArgs[4]
                         , primedArgs[6], primedArgs[7], primedArgs[8], primedArgs[9], primedArgs[10]
                         , primedArgs[11], primedArgs[12]},
-               funcs[1].getDef(),
-               0,
-               new Pattern[] {},
-               new Expr[] {},
-               ctx.mkSymbol(""),
-               ctx.mkSymbol("")
-                );
+                funcs[1].getDef(),
+                0,
+                new Pattern[]{},
+                new Expr[]{},
+                ctx.mkSymbol(""),
+                ctx.mkSymbol("")
+        );
 
         logger.info("transWithX: " + transWithX.toString());
         logger.info("transWithoutX: " + transWithoutX.toString());
@@ -256,10 +257,10 @@ public class QETest {
         Expr transWithoutXQFree = qe.apply(g).getSubgoals()[0].AsBoolExpr();
         logger.info("transWithoutXQFree: " + transWithoutXQFree.simplify().toString());
 
-        and = ctx.mkAnd((BoolExpr)transWithXQFree, (BoolExpr)transWithoutXQFree);
+        and = ctx.mkAnd((BoolExpr) transWithXQFree, (BoolExpr) transWithoutXQFree);
 
         solver.reset();
-        solver.add(ctx.mkNot(ctx.mkImplies((BoolExpr)funcs[1].getDef(), and)));
+        solver.add(ctx.mkNot(ctx.mkImplies((BoolExpr) funcs[1].getDef(), and)));
         status = solver.check();
 
         logger.info("Trans Status: " + status);
@@ -348,9 +349,9 @@ public class QETest {
     }
 }
 
-class CustomErrorStrategy extends DefaultErrorStrategy{
+class CustomErrorStrategy extends DefaultErrorStrategy {
     @Override
-    public void reportError(Parser recognizer, RecognitionException e){
+    public void reportError(Parser recognizer, RecognitionException e) {
         throw e;
     }
 }

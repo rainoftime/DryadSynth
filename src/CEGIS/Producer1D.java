@@ -3,9 +3,10 @@ import java.util.*;
 public class Producer1D {
     int height = 1;
     public boolean heightsOnly = false;
+
     public int get() {
         int i;
-        synchronized(this) {
+        synchronized (this) {
             i = height;
             height++;
             if (heightsOnly) {
@@ -14,8 +15,9 @@ public class Producer1D {
         }
         return i;
     }
+
     public void reset() {
-        synchronized(this){
+        synchronized (this) {
             height = 1;
         }
     }

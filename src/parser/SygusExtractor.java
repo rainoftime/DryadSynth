@@ -1,10 +1,12 @@
 import java.util.*;
+
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.*;
 import com.microsoft.z3.*;
 
 public class SygusExtractor extends SygusBaseListener {
     Context z3ctx;
+
     public SygusExtractor(Context initctx) {
         z3ctx = initctx;
         combinedConstraint = z3ctx.mkTrue();
@@ -15,6 +17,7 @@ public class SygusExtractor extends SygusBaseListener {
     enum CmdType {
         SYNTHFUNC, SYNTHINV, FUNCDEF, CONSTRAINT, INVCONSTRAINT, DECLVAR, DECLPVAR, NTDEF, NONE
     }
+
     CmdType currentCmd = CmdType.NONE;
     boolean currentOnArgList = false;
 
@@ -25,7 +28,7 @@ public class SygusExtractor extends SygusBaseListener {
     Map<String, Expr[]> requestSyntaxUsedArgs = new LinkedHashMap<String, Expr[]>(); // Used arguments in Syntax, used in AT fragment
     Map<String, FuncDecl> rdcdRequests = new LinkedHashMap<String, FuncDecl>(); // Reduced request using used arguments
     Map<String, DefinedFunc> candidate = new LinkedHashMap<String, DefinedFunc>(); // possible solution candidates from the benchmark
-    Map<String, Set<Set<Expr>>> varsRelation = new LinkedHashMap<String, Set<Set<Expr>>>();	// vars relationship map, used for INV DnC
+    Map<String, Set<Set<Expr>>> varsRelation = new LinkedHashMap<String, Set<Set<Expr>>>();    // vars relationship map, used for INV DnC
     List<Expr> currentArgList;
     List<String> currentArgNameList;
     List<Sort> currentSortList;
@@ -95,7 +98,7 @@ public class SygusExtractor extends SygusBaseListener {
 
     public SygusProblem createINVSubProblem(Expr[] usedArgs, Expr[] usedArgswprime, Expr pre, Expr trans, Expr post) {
         String name = this.names.get(0);        // names.size() should be 1
-        
+
         // prescreen to eliminate unused variables
         Set<Expr> usedInPre = scanForVars(pre);
         Set<Expr> usedInTrans = scanForVars(trans);
@@ -173,20 +176,20 @@ public class SygusExtractor extends SygusBaseListener {
         // Expr[] transArgs = newfuncs[1].getArgs();
         // Expr[] transArgsOrig = Arrays.copyOfRange(transArgs, 0, transArgs.length/2);
         // Expr[] transArgsPrime = Arrays.copyOfRange(transArgs, transArgs.length/2, transArgs.length);
-        BoolExpr startCstrt = z3ctx.mkImplies((BoolExpr)newfuncs[0].getDef(),
-                                (BoolExpr)rdcdFunc.apply(newfuncs[0].getArgs()));
-        BoolExpr loopCstrt = z3ctx.mkImplies(z3ctx.mkAnd((BoolExpr)newfuncs[1].getDef(),
-                                                (BoolExpr)rdcdFunc.apply(used)),
-                                (BoolExpr)rdcdFunc.apply(usedprime));
-        BoolExpr endCstrt = z3ctx.mkImplies((BoolExpr)rdcdFunc.apply(newfuncs[2].getArgs()),
-                                (BoolExpr)newfuncs[2].getDef());
+        BoolExpr startCstrt = z3ctx.mkImplies((BoolExpr) newfuncs[0].getDef(),
+                (BoolExpr) rdcdFunc.apply(newfuncs[0].getArgs()));
+        BoolExpr loopCstrt = z3ctx.mkImplies(z3ctx.mkAnd((BoolExpr) newfuncs[1].getDef(),
+                (BoolExpr) rdcdFunc.apply(used)),
+                (BoolExpr) rdcdFunc.apply(usedprime));
+        BoolExpr endCstrt = z3ctx.mkImplies((BoolExpr) rdcdFunc.apply(newfuncs[2].getArgs()),
+                (BoolExpr) newfuncs[2].getDef());
 
         pblm.constraints.add(startCstrt);
         pblm.constraints.add(loopCstrt);
         pblm.constraints.add(endCstrt);
 
         pblm.invCombinedConstraint = z3ctx.mkAnd(startCstrt, loopCstrt, endCstrt);
-        pblm.finalConstraint = (BoolExpr)z3ctx.mkAnd(pblm.combinedConstraint, pblm.invCombinedConstraint).simplify();
+        pblm.finalConstraint = (BoolExpr) z3ctx.mkAnd(pblm.combinedConstraint, pblm.invCombinedConstraint).simplify();
 
         pblm.funcs = new LinkedHashMap<String, DefinedFunc>(this.funcs);
         pblm.funcs.put(origfuncs[0].getName(), newfuncs[0]);
@@ -210,7 +213,7 @@ public class SygusExtractor extends SygusBaseListener {
 
     Sort strToSort(String name) {
         Sort sort;
-        switch(name) {
+        switch (name) {
             case "Int":
                 sort = z3ctx.getIntSort();
                 break;
@@ -222,7 +225,7 @@ public class SygusExtractor extends SygusBaseListener {
                 break;
             default:
                 sort = null;
-            }
+        }
         return sort;
     }
 
@@ -232,50 +235,50 @@ public class SygusExtractor extends SygusBaseListener {
         }
         SygusExtractor newExtractor = new SygusExtractor(ctx);
         newExtractor.names.addAll(this.names);
-        for(String key : this.requests.keySet()) {
+        for (String key : this.requests.keySet()) {
             newExtractor.requests.put(key, this.requests.get(key).translate(ctx));
         }
-        for(String key: this.requestArgs.keySet()){
+        for (String key : this.requestArgs.keySet()) {
             Expr[] argList = this.requestArgs.get(key);
             Expr[] newArgList = new Expr[argList.length];
-            for(int i = 0; i < argList.length; i++){
+            for (int i = 0; i < argList.length; i++) {
                 newArgList[i] = argList[i].translate(ctx);
             }
             newExtractor.requestArgs.put(key, newArgList);
         }
-        for(String key: this.requestUsedArgs.keySet()){
+        for (String key : this.requestUsedArgs.keySet()) {
             Expr[] argList = this.requestUsedArgs.get(key);
             Expr[] newArgList = new Expr[argList.length];
-            for(int i = 0; i < argList.length; i++){
+            for (int i = 0; i < argList.length; i++) {
                 newArgList[i] = argList[i].translate(ctx);
             }
             newExtractor.requestUsedArgs.put(key, newArgList);
         }
-        for(String key: this.requestSyntaxUsedArgs.keySet()){
+        for (String key : this.requestSyntaxUsedArgs.keySet()) {
             Expr[] argList = this.requestSyntaxUsedArgs.get(key);
             Expr[] newArgList = new Expr[argList.length];
-            for(int i = 0; i < argList.length; i++){
+            for (int i = 0; i < argList.length; i++) {
                 newArgList[i] = argList[i].translate(ctx);
             }
             newExtractor.requestSyntaxUsedArgs.put(key, newArgList);
         }
-        for(String key : this.rdcdRequests.keySet()) {
+        for (String key : this.rdcdRequests.keySet()) {
             newExtractor.rdcdRequests.put(key, this.rdcdRequests.get(key).translate(ctx));
         }
-        for(String key : this.candidate.keySet()) {
+        for (String key : this.candidate.keySet()) {
             newExtractor.candidate.put(key, this.candidate.get(key).translate(ctx));
         }
         newExtractor.problemType = this.problemType;
-        for(String key : this.vars.keySet()) {
+        for (String key : this.vars.keySet()) {
             newExtractor.vars.put(key, this.vars.get(key).translate(ctx));
         }
-        for(String key : this.regularVars.keySet()) {
+        for (String key : this.regularVars.keySet()) {
             newExtractor.regularVars.put(key, this.regularVars.get(key).translate(ctx));
         }
-        for(BoolExpr expr : this.constraints) {
-            newExtractor.constraints.add((BoolExpr)expr.translate(ctx));
+        for (BoolExpr expr : this.constraints) {
+            newExtractor.constraints.add((BoolExpr) expr.translate(ctx));
         }
-        for(String key : this.invConstraints.keySet()) {
+        for (String key : this.invConstraints.keySet()) {
             DefinedFunc[] funcs = new DefinedFunc[3];
             DefinedFunc[] origFuncs = this.invConstraints.get(key);
             for (int i = 0; i < 3; i++) {
@@ -283,17 +286,17 @@ public class SygusExtractor extends SygusBaseListener {
             }
             newExtractor.invConstraints.put(key, funcs);
         }
-        newExtractor.combinedConstraint = (BoolExpr)this.combinedConstraint.translate(ctx);
-        newExtractor.invCombinedConstraint = (BoolExpr)this.invCombinedConstraint.translate(ctx);
+        newExtractor.combinedConstraint = (BoolExpr) this.combinedConstraint.translate(ctx);
+        newExtractor.invCombinedConstraint = (BoolExpr) this.invCombinedConstraint.translate(ctx);
         if (this.finalConstraint != null) {
-            newExtractor.finalConstraint = (BoolExpr)this.finalConstraint.translate(ctx);
+            newExtractor.finalConstraint = (BoolExpr) this.finalConstraint.translate(ctx);
         }
-        for(String key : this.funcs.keySet()) {
+        for (String key : this.funcs.keySet()) {
             newExtractor.funcs.put(key, this.funcs.get(key).translate(ctx));
         }
         newExtractor.opDis = new OpDispatcher(newExtractor.z3ctx, newExtractor.requests, newExtractor.funcs);
         newExtractor.glbSybTypeTbl.putAll(this.glbSybTypeTbl);
-        for(String key : this.cfgs.keySet()) {
+        for (String key : this.cfgs.keySet()) {
             newExtractor.cfgs.put(key, this.cfgs.get(key).translate(ctx));
         }
         newExtractor.isGeneral = this.isGeneral;
@@ -302,8 +305,8 @@ public class SygusExtractor extends SygusBaseListener {
     }
 
     public Set<Set<Expr>> invVarRelation(String funcname) {
-    	Set<Set<Expr>> relation = new HashSet<Set<Expr>>();
-    	Expr pre = invConstraints.get(funcname)[0].getDef();
+        Set<Set<Expr>> relation = new HashSet<Set<Expr>>();
+        Expr pre = invConstraints.get(funcname)[0].getDef();
         Expr trans = invConstraints.get(funcname)[1].getDef();
         Expr post = invConstraints.get(funcname)[2].getDef();
         relation = getVarsRelation(pre, relation);
@@ -313,65 +316,65 @@ public class SygusExtractor extends SygusBaseListener {
     }
 
     public Set<Set<Expr>> getVarsRelation(Expr orig, Set<Set<Expr>> r) {
-    	Set<Set<Expr>> relation = new HashSet<Set<Expr>>();
-    	relation.addAll(r);
-    	Queue<Expr> todo = new LinkedList<Expr>();
+        Set<Set<Expr>> relation = new HashSet<Set<Expr>>();
+        relation.addAll(r);
+        Queue<Expr> todo = new LinkedList<Expr>();
         todo.add(orig);
         while (!todo.isEmpty()) {
             Expr expr = todo.remove();
             if (expr.isConst()) {
-            	// do nothing
+                // do nothing
             } else if (expr.isApp()) {
-            	if (expr.isEq()) {
-            		Expr[] args = expr.getArgs();
-	    			if (args[0].isBool() && args[1].isBool()) {
-	    				for (Expr arg : args) {
-		    				todo.add(arg);
-		    			}
-		    			continue;
-	    			}
-            	}
-            	if (expr.isEq() || expr.isLE() || expr.isGE() || expr.isGT() || expr.isLT()) {
-            		Set<Expr> usedInExpr = scanForVars(expr);
-            		// primed variable should be considered the same as non-primed variable
-            		Set<Expr> used = new HashSet<Expr>();
-            		for(Expr e : usedInExpr) {
-            			if (e.toString().endsWith("!")) {
-            				used.add(vars.get(e.toString().substring(0, e.toString().length() - 1)));
-            			} else {
-            				used.add(e);
-            			}
-            		}
-	    			Set<Set<Expr>> newrelation = new HashSet<Set<Expr>>();
-	    			for (Set<Expr> set : relation) {
-	    				Set<Expr> overlapped = new HashSet<Expr>(used);
-	    				overlapped.retainAll(set);
-	    				if (overlapped.isEmpty()) {
-	    					newrelation.add(set);
-	    				}
-	    			}
-	    			Set<Set<Expr>> overlapped = new HashSet<Set<Expr>>();
-	    			overlapped.addAll(relation);
-	    			overlapped.removeAll(newrelation);
-	    			if (!overlapped.isEmpty()) {
-	    				Set<Expr> merged = new HashSet<Expr>(used);
-	    				for (Set<Expr> overlappedset : overlapped) {
-	    					merged.addAll(overlappedset);
-	    				}
-	    				newrelation.add(merged);
-	    			} else {
-	    				// used do not have any overlap with relation, add used to relation
-	    				newrelation.add(used);
-	    			}
-	    			relation = new HashSet<Set<Expr>>();
-	    			relation.addAll(newrelation);
-            	} else {
-            		for(Expr arg: expr.getArgs()) {
-	                    todo.add(arg);
-	                }
-            	}
-            } else if(expr.isQuantifier()) {
-                todo.add(((Quantifier)expr).getBody());
+                if (expr.isEq()) {
+                    Expr[] args = expr.getArgs();
+                    if (args[0].isBool() && args[1].isBool()) {
+                        for (Expr arg : args) {
+                            todo.add(arg);
+                        }
+                        continue;
+                    }
+                }
+                if (expr.isEq() || expr.isLE() || expr.isGE() || expr.isGT() || expr.isLT()) {
+                    Set<Expr> usedInExpr = scanForVars(expr);
+                    // primed variable should be considered the same as non-primed variable
+                    Set<Expr> used = new HashSet<Expr>();
+                    for (Expr e : usedInExpr) {
+                        if (e.toString().endsWith("!")) {
+                            used.add(vars.get(e.toString().substring(0, e.toString().length() - 1)));
+                        } else {
+                            used.add(e);
+                        }
+                    }
+                    Set<Set<Expr>> newrelation = new HashSet<Set<Expr>>();
+                    for (Set<Expr> set : relation) {
+                        Set<Expr> overlapped = new HashSet<Expr>(used);
+                        overlapped.retainAll(set);
+                        if (overlapped.isEmpty()) {
+                            newrelation.add(set);
+                        }
+                    }
+                    Set<Set<Expr>> overlapped = new HashSet<Set<Expr>>();
+                    overlapped.addAll(relation);
+                    overlapped.removeAll(newrelation);
+                    if (!overlapped.isEmpty()) {
+                        Set<Expr> merged = new HashSet<Expr>(used);
+                        for (Set<Expr> overlappedset : overlapped) {
+                            merged.addAll(overlappedset);
+                        }
+                        newrelation.add(merged);
+                    } else {
+                        // used do not have any overlap with relation, add used to relation
+                        newrelation.add(used);
+                    }
+                    relation = new HashSet<Set<Expr>>();
+                    relation.addAll(newrelation);
+                } else {
+                    for (Expr arg : expr.getArgs()) {
+                        todo.add(arg);
+                    }
+                }
+            } else if (expr.isQuantifier()) {
+                todo.add(((Quantifier) expr).getBody());
             }
         }
         return relation;
@@ -386,11 +389,11 @@ public class SygusExtractor extends SygusBaseListener {
             if (expr.isConst()) {
                 scanned.add(expr);
             } else if (expr.isApp()) {
-                for(Expr arg: expr.getArgs()) {
+                for (Expr arg : expr.getArgs()) {
                     todo.add(arg);
                 }
-            } else if(expr.isQuantifier()) {
-                todo.add(((Quantifier)expr).getBody());
+            } else if (expr.isQuantifier()) {
+                todo.add(((Quantifier) expr).getBody());
             }
         }
         return scanned;
@@ -409,7 +412,7 @@ public class SygusExtractor extends SygusBaseListener {
         if (isGeneral) {
             // Generate finalConstraint
             finalConstraint = z3ctx.mkAnd(constraints.toArray(new BoolExpr[constraints.size()]));
-            finalConstraint = (BoolExpr)finalConstraint.simplify();
+            finalConstraint = (BoolExpr) finalConstraint.simplify();
             // Use unprocessed as dummy for processed
             rdcdRequests = requests;
             requestUsedArgs = requestArgs;
@@ -434,7 +437,7 @@ public class SygusExtractor extends SygusBaseListener {
         pVarSet.removeAll(rVarSet);
         // INV problem variable scan
         for (String name : invFuncs) {
-        	varsRelation.put(name, invVarRelation(name));
+            varsRelation.put(name, invVarRelation(name));
 
             Set<Expr> usedInPre = scanForVars(invConstraints.get(name)[0].getDef());
             Set<Expr> usedInTrans = scanForVars(invConstraints.get(name)[1].getDef());
@@ -508,7 +511,7 @@ public class SygusExtractor extends SygusBaseListener {
                 String name = func.getName().toString();
                 Expr[] args = expr.getArgs();
                 if (funcCall.empty() || funcCall.peek() != expr) {
-                    for(Expr arg: args) {
+                    for (Expr arg : args) {
                         todo.push(arg);
                     }
                     if (nomFuncs.contains(name)) {
@@ -525,9 +528,9 @@ public class SygusExtractor extends SygusBaseListener {
                         requestCallDepth = requestCallDepth - 1;
                     }
                 }
-            } else if(expr.isQuantifier()) {
+            } else if (expr.isQuantifier()) {
                 todo.pop();
-                todo.push(((Quantifier)expr).getBody());
+                todo.push(((Quantifier) expr).getBody());
             } else {
                 todo.pop();
             }
@@ -570,12 +573,12 @@ public class SygusExtractor extends SygusBaseListener {
 
         // Avoid functions with completely empty arglist, which may cause CEGIS
         // algorithm to behave badly
-        for (String name: requestUsedArgs.keySet()) {
+        for (String name : requestUsedArgs.keySet()) {
             if (requestUsedArgs.get(name).length == 0) {
                 requestUsedArgs.put(name, requestArgs.get(name));
             }
         }
-        for (String name: requestSyntaxUsedArgs.keySet()) {
+        for (String name : requestSyntaxUsedArgs.keySet()) {
             if (requestSyntaxUsedArgs.get(name).length == 0) {
                 requestSyntaxUsedArgs.put(name, requestArgs.get(name));
             }
@@ -595,10 +598,10 @@ public class SygusExtractor extends SygusBaseListener {
             FuncDecl rdcdFunc = z3ctx.mkFuncDecl(name, domain, range);
             rdcdRequests.put(name, rdcdFunc);
             DefinedFunc df = new DefinedFunc(z3ctx, name, allArgs, rdcdFunc.apply(args));
-            finalConstraint = (BoolExpr)df.rewrite(finalConstraint, func);
+            finalConstraint = (BoolExpr) df.rewrite(finalConstraint, func);
         }
 
-        finalConstraint = (BoolExpr)finalConstraint.simplify();
+        finalConstraint = (BoolExpr) finalConstraint.simplify();
     }
 
     public void enterSynthFunCmd(SygusParser.SynthFunCmdContext ctx) {
@@ -609,18 +612,18 @@ public class SygusExtractor extends SygusBaseListener {
         currentSortList = new ArrayList<Sort>();
     }
 
-    public List<String[]> replaceNonTerminal(String nonTerminalName){
-        if(parentTerminals.contains(nonTerminalName)){
+    public List<String[]> replaceNonTerminal(String nonTerminalName) {
+        if (parentTerminals.contains(nonTerminalName)) {
             return (new ArrayList<String[]>());
         }
         List<String[]> copyTerminal = new ArrayList<String[]>();
         copyTerminal.addAll(currentCFG.grammarRules.get(nonTerminalName));
         parentTerminals.add(nonTerminalName);
-        for(int i = 0; i < copyTerminal.size();i++){
-            if(copyTerminal.get(i).length == 1 && currentCFG.grammarRules.containsKey(copyTerminal.get(i)[0])){
+        for (int i = 0; i < copyTerminal.size(); i++) {
+            if (copyTerminal.get(i).length == 1 && currentCFG.grammarRules.containsKey(copyTerminal.get(i)[0])) {
                 List<String[]> returnList = replaceNonTerminal(copyTerminal.get(i)[0]);
                 copyTerminal.remove(i);
-                for(int j = 0; j < returnList.size();j++){
+                for (int j = 0; j < returnList.size(); j++) {
                     copyTerminal.add(i, returnList.get(j));
                 }
             }
@@ -630,47 +633,47 @@ public class SygusExtractor extends SygusBaseListener {
     }
 
     public void exitSynthFunCmd(SygusParser.SynthFunCmdContext ctx) {
-        if(currentCFG != null){
+        if (currentCFG != null) {
             Set<String> keys = currentCFG.grammarRules.keySet();
-            for(String key:keys){
+            for (String key : keys) {
                 parentTerminals.clear();
                 currentCFG.grammarRules.replace(key, replaceNonTerminal(key));
             }
             keys = currentCFG.grammarRules.keySet();
             Object[] keys_array = keys.toArray();
-            for(Object key_object:keys_array){
+            for (Object key_object : keys_array) {
                 String key = key_object.toString();
-                for(int i = 0; i < currentCFG.grammarRules.get(key).size();i++){
-                    if(currentCFG.grammarRules.get(key).get(i).length > 1){
-                        if(!currentCFG.grammarRules.keySet().contains(currentCFG.grammarRules.get(key).get(i)[1])){
+                for (int i = 0; i < currentCFG.grammarRules.get(key).size(); i++) {
+                    if (currentCFG.grammarRules.get(key).get(i).length > 1) {
+                        if (!currentCFG.grammarRules.keySet().contains(currentCFG.grammarRules.get(key).get(i)[1])) {
                             String target = currentCFG.grammarRules.get(key).get(i)[1];
                             String[] target_array = new String[1];
                             List<String[]> target_arraylist = new ArrayList<String[]>();
                             target_array[0] = target;
                             target_arraylist.add(target_array);
-                            currentCFG.grammarRules.put(target,target_arraylist);
-                            currentCFG.grammarSybSort.put(target,z3ctx.getIntSort());
-                            if(!currentArgList.contains(target)){
-                                currentCFG.sybTypeTbl.put(target,SygusProblem.SybType.LITERAL);
+                            currentCFG.grammarRules.put(target, target_arraylist);
+                            currentCFG.grammarSybSort.put(target, z3ctx.getIntSort());
+                            if (!currentArgList.contains(target)) {
+                                currentCFG.sybTypeTbl.put(target, SygusProblem.SybType.LITERAL);
                             }
                         }
-                        if(currentCFG.grammarRules.get(key).get(i).length > 2 && !currentCFG.grammarRules.keySet().contains(currentCFG.grammarRules.get(key).get(i)[2])){
+                        if (currentCFG.grammarRules.get(key).get(i).length > 2 && !currentCFG.grammarRules.keySet().contains(currentCFG.grammarRules.get(key).get(i)[2])) {
                             String target = currentCFG.grammarRules.get(key).get(i)[2];
                             String[] target_array = new String[1];
                             List<String[]> target_arraylist = new ArrayList<String[]>();
                             target_array[0] = target;
                             target_arraylist.add(target_array);
-                            currentCFG.grammarRules.put(target,target_arraylist);
-                            currentCFG.grammarSybSort.put(target,z3ctx.getIntSort());
-                            if(!currentArgList.contains(target)){
-                                currentCFG.sybTypeTbl.put(target,SygusProblem.SybType.LITERAL);
+                            currentCFG.grammarRules.put(target, target_arraylist);
+                            currentCFG.grammarSybSort.put(target, z3ctx.getIntSort());
+                            if (!currentArgList.contains(target)) {
+                                currentCFG.sybTypeTbl.put(target, SygusProblem.SybType.LITERAL);
                             }
                         }
                     }
                 }
             }
         }
-        
+
         String name = ctx.symbol().getText();
         Expr[] argList = currentArgList.toArray(new Expr[currentArgList.size()]);
         Sort[] typeList = currentSortList.toArray(new Sort[currentSortList.size()]);
@@ -785,7 +788,7 @@ public class SygusExtractor extends SygusBaseListener {
     }
 
     public void exitConstraintCmd(SygusParser.ConstraintCmdContext ctx) {
-        BoolExpr cstrt = (BoolExpr)termStack.pop();
+        BoolExpr cstrt = (BoolExpr) termStack.pop();
         constraints.add(cstrt);
         combinedConstraint = z3ctx.mkAnd(combinedConstraint, cstrt);
         currentCmd = CmdType.NONE;
@@ -802,15 +805,15 @@ public class SygusExtractor extends SygusBaseListener {
         DefinedFunc trans = funcs.get(ctx.symbol(2).getText());
         DefinedFunc post = funcs.get(ctx.symbol(3).getText());
         Expr[] transArgs = trans.getArgs();
-        Expr[] transArgsOrig = Arrays.copyOfRange(transArgs, 0, transArgs.length/2);
-        Expr[] transArgsPrime = Arrays.copyOfRange(transArgs, transArgs.length/2, transArgs.length);
-        BoolExpr startCstrt = z3ctx.mkImplies((BoolExpr)pre.getDef(),
-                                (BoolExpr)inv.apply(pre.getArgs()));
-        BoolExpr loopCstrt = z3ctx.mkImplies(z3ctx.mkAnd((BoolExpr)trans.getDef(),
-                                                (BoolExpr)inv.apply(transArgsOrig)),
-                                (BoolExpr)inv.apply(transArgsPrime));
-        BoolExpr endCstrt = z3ctx.mkImplies((BoolExpr)inv.apply(post.getArgs()),
-                                (BoolExpr)post.getDef());
+        Expr[] transArgsOrig = Arrays.copyOfRange(transArgs, 0, transArgs.length / 2);
+        Expr[] transArgsPrime = Arrays.copyOfRange(transArgs, transArgs.length / 2, transArgs.length);
+        BoolExpr startCstrt = z3ctx.mkImplies((BoolExpr) pre.getDef(),
+                (BoolExpr) inv.apply(pre.getArgs()));
+        BoolExpr loopCstrt = z3ctx.mkImplies(z3ctx.mkAnd((BoolExpr) trans.getDef(),
+                (BoolExpr) inv.apply(transArgsOrig)),
+                (BoolExpr) inv.apply(transArgsPrime));
+        BoolExpr endCstrt = z3ctx.mkImplies((BoolExpr) inv.apply(post.getArgs()),
+                (BoolExpr) post.getDef());
         // Add to general constraints, invariant constraints and combined constraints
         constraints.add(startCstrt);
         constraints.add(loopCstrt);
@@ -821,15 +824,15 @@ public class SygusExtractor extends SygusBaseListener {
         currentCmd = CmdType.NONE;
     }
 
-    public void enterFunDefCmd(SygusParser.FunDefCmdContext ctx){
+    public void enterFunDefCmd(SygusParser.FunDefCmdContext ctx) {
         currentCmd = CmdType.FUNCDEF;
         defFuncVars = new LinkedHashMap<String, Expr>();
     }
 
-    public void exitFunDefCmd(SygusParser.FunDefCmdContext ctx){
+    public void exitFunDefCmd(SygusParser.FunDefCmdContext ctx) {
         String name = ctx.symbol().getText();
         Expr[] argList = defFuncVars.values().toArray(new Expr[defFuncVars.size()]);
-        Expr def = (Expr)termStack.pop();
+        Expr def = (Expr) termStack.pop();
         DefinedFunc func = new DefinedFunc(z3ctx, name, argList, def);
         funcs.put(name, func);
         glbSybTypeTbl.put(name, SygusProblem.SybType.FUNC);
@@ -874,7 +877,7 @@ public class SygusExtractor extends SygusBaseListener {
             return;
         }
         String currentTerm;
-        if (ctx.symbol() != null){
+        if (ctx.symbol() != null) {
             currentTerm = ctx.symbol().getText();
         } else if (ctx.literal() != null) {
             currentTerm = ctx.literal().getText();
@@ -945,7 +948,7 @@ public class SygusExtractor extends SygusBaseListener {
 
     public void enterTerm(SygusParser.TermContext ctx) {
         if (currentCmd == CmdType.CONSTRAINT ||
-            currentCmd == CmdType.FUNCDEF) {
+                currentCmd == CmdType.FUNCDEF) {
             int numChildren = ctx.getChildCount();
             if (numChildren == 1) {
                 if (ctx.symbol() != null) {
@@ -961,26 +964,26 @@ public class SygusExtractor extends SygusBaseListener {
     }
 
     Expr literalToExpr(SygusParser.LiteralContext ctx) {
-        if (ctx.intConst()!= null) {
+        if (ctx.intConst() != null) {
             return z3ctx.mkInt(ctx.intConst().getText());
         }
-        if (ctx.realConst()!= null) {
+        if (ctx.realConst() != null) {
             return z3ctx.mkReal(ctx.realConst().getText());
         }
-        if (ctx.boolConst()!= null) {
+        if (ctx.boolConst() != null) {
             return ctx.boolConst().getText().equals("true") ? z3ctx.mkTrue() : z3ctx.mkFalse();
         }
         return null;
     }
 
-    public void exitTerm(SygusParser.TermContext ctx){
+    public void exitTerm(SygusParser.TermContext ctx) {
         if (currentCmd == CmdType.CONSTRAINT ||
-            currentCmd == CmdType.FUNCDEF) {
-            if (ctx.getChildCount()!= 1) {
+                currentCmd == CmdType.FUNCDEF) {
+            if (ctx.getChildCount() != 1) {
                 List<Expr> args = new ArrayList<Expr>();
                 Object top = termStack.pop();
                 while (top != ctx) {
-                    args.add(0, (Expr)top);
+                    args.add(0, (Expr) top);
                     top = termStack.pop();
                 }
                 String name = ctx.symbol().getText();

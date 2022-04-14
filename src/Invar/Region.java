@@ -1,5 +1,6 @@
 import java.util.*;
 import java.lang.Math;
+
 import com.microsoft.z3.*;
 
 public class Region {
@@ -17,22 +18,22 @@ public class Region {
 
         public Expr toExpr() {
             List<Expr> terms = new ArrayList<Expr>();
-            for (Expr e: coeffTbl.keySet()) {
-                terms.add(z3ctx.mkMul(z3ctx.mkInt(coeffTbl.get(e)), (ArithExpr)e));
+            for (Expr e : coeffTbl.keySet()) {
+                terms.add(z3ctx.mkMul(z3ctx.mkInt(coeffTbl.get(e)), (ArithExpr) e));
             }
             terms.add(z3ctx.mkInt(constTerm));
             return z3ctx.mkGe(z3ctx.mkAdd(
-                            terms.toArray(new ArithExpr[terms.size()])
-                            ), z3ctx.mkInt(0));
+                    terms.toArray(new ArithExpr[terms.size()])
+            ), z3ctx.mkInt(0));
         }
 
         public Expr toKExpr(Expr k) {
             Expr expr = this.toExpr();
-            for (Expr var: coeffTbl.keySet()) {
+            for (Expr var : coeffTbl.keySet()) {
                 expr = expr.substitute(
                         var,
-                        z3ctx.mkSub((ArithExpr)var, z3ctx.mkMul((ArithExpr)k, z3ctx.mkInt(trans.deltaTbl.get(var))))
-                        );
+                        z3ctx.mkSub((ArithExpr) var, z3ctx.mkMul((ArithExpr) k, z3ctx.mkInt(trans.deltaTbl.get(var))))
+                );
             }
             return expr;
         }
@@ -65,7 +66,7 @@ public class Region {
         this.kExtended.clear();
         for (Cond c : conds) {
             int deltaSum = 0;
-            for (Expr var: c.coeffTbl.keySet()) {
+            for (Expr var : c.coeffTbl.keySet()) {
                 deltaSum = deltaSum + c.coeffTbl.get(var) * t.deltaTbl.get(var);
             }
             if (deltaSum > 0) {
@@ -87,14 +88,14 @@ public class Region {
 
     public void addCond(int[] coeff, int constTerm) {
         // Input format must match
-        if ( coeff.length != vars.size() ) {
+        if (coeff.length != vars.size()) {
             return;
         }
 
         Cond newC = new Cond();
 
         int i = 0;
-        for (Expr e: vars.values()) {
+        for (Expr e : vars.values()) {
             newC.coeffTbl.put(e, coeff[i]);
             i++;
         }
@@ -107,7 +108,7 @@ public class Region {
         if (expr.isNot()) {
             return isAtom(expr.getArgs()[0]);
         }
-        if (expr.isAnd() || expr.isOr() || expr.isImplies() || expr.isITE() ) {
+        if (expr.isAnd() || expr.isOr() || expr.isImplies() || expr.isITE()) {
             return false;
         }
         return true;
@@ -119,13 +120,13 @@ public class Region {
         while (!todo.isEmpty()) {
             Expr expr = todo.remove();
             if (expr.isConst()) {
-                if (expr.toString().endsWith("!")){
+                if (expr.toString().endsWith("!")) {
                     return true;
                 }
             }
             if (expr.isApp()) {
                 Expr[] args = expr.getArgs();
-                for (Expr arg: args) {
+                for (Expr arg : args) {
                     todo.add(arg);
                 }
             }
@@ -133,7 +134,7 @@ public class Region {
         return false;
     }
 
-    public static void eliminate_negation(Expr cond, List<Expr> nnCondList, List<Expr[]> neTermList , Context ctx) {
+    public static void eliminate_negation(Expr cond, List<Expr> nnCondList, List<Expr[]> neTermList, Context ctx) {
 
         if (cond.isConst()) {
             return;
@@ -147,24 +148,24 @@ public class Region {
                     eliminate_negation(inner, nnCondList, neTermList, ctx);
                 }
                 if (inner.isGE()) {
-                    nnCondList.add(ctx.mkLt((ArithExpr)innerArgs[0], (ArithExpr)innerArgs[1]));
+                    nnCondList.add(ctx.mkLt((ArithExpr) innerArgs[0], (ArithExpr) innerArgs[1]));
                 }
                 if (inner.isGT()) {
-                    nnCondList.add(ctx.mkLe((ArithExpr)innerArgs[0], (ArithExpr)innerArgs[1]));
+                    nnCondList.add(ctx.mkLe((ArithExpr) innerArgs[0], (ArithExpr) innerArgs[1]));
                 }
                 if (inner.isLT()) {
-                    nnCondList.add(ctx.mkGe((ArithExpr)innerArgs[0], (ArithExpr)innerArgs[1]));
+                    nnCondList.add(ctx.mkGe((ArithExpr) innerArgs[0], (ArithExpr) innerArgs[1]));
                 }
                 if (inner.isLE()) {
-                    nnCondList.add(ctx.mkGt((ArithExpr)innerArgs[0], (ArithExpr)innerArgs[1]));
+                    nnCondList.add(ctx.mkGt((ArithExpr) innerArgs[0], (ArithExpr) innerArgs[1]));
                 }
                 if (inner.isEq()) {
                     neTermList.add(innerArgs);
                 }
             } else if (cond.isEq()) {
                 Expr[] innerArgs = cond.getArgs();
-                nnCondList.add(ctx.mkLe((ArithExpr)innerArgs[0], (ArithExpr)innerArgs[1]));
-                nnCondList.add(ctx.mkGe((ArithExpr)innerArgs[0], (ArithExpr)innerArgs[1]));
+                nnCondList.add(ctx.mkLe((ArithExpr) innerArgs[0], (ArithExpr) innerArgs[1]));
+                nnCondList.add(ctx.mkGe((ArithExpr) innerArgs[0], (ArithExpr) innerArgs[1]));
             } else {
                 nnCondList.add(cond);
             }
@@ -174,13 +175,13 @@ public class Region {
 
     public static void construct_neqs_cond(List<Expr[]> neTermList, List<List<Expr>> neCondList, Context ctx) {
         neCondList.add(new ArrayList<Expr>());
-        for (Expr[] args: neTermList) {
-            Expr lt = ctx.mkLt((ArithExpr)args[0], (ArithExpr)args[1]);
-            Expr gt = ctx.mkGt((ArithExpr)args[0], (ArithExpr)args[1]);
+        for (Expr[] args : neTermList) {
+            Expr lt = ctx.mkLt((ArithExpr) args[0], (ArithExpr) args[1]);
+            Expr gt = ctx.mkGt((ArithExpr) args[0], (ArithExpr) args[1]);
             int size = neCondList.size();
             for (int i = 0; i < size; i++) {
                 List<Expr> orig = neCondList.get(i);
-                List<Expr> copy = new ArrayList<Expr>((ArrayList<Expr>)orig);
+                List<Expr> copy = new ArrayList<Expr>((ArrayList<Expr>) orig);
                 orig.add(lt);
                 copy.add(gt);
                 neCondList.add(copy);
@@ -211,7 +212,7 @@ public class Region {
         //Expr constant = getConstant(expr, from, size);
         for (int i = 0; i < size; i++) {
             coeff[i] = getCoeff(expr, from, i, size);
-            coeff[i] = z3ctx.mkSub((ArithExpr)coeff[i], (ArithExpr)constant).simplify();
+            coeff[i] = z3ctx.mkSub((ArithExpr) coeff[i], (ArithExpr) constant).simplify();
         }
         return coeff;
     }
@@ -244,27 +245,27 @@ public class Region {
 
             if (nnCond.isGE()) {
                 for (int i = 0; i < size; i++) {
-                    coeff_normal[i] = ctx.mkSub((ArithExpr)argsCoeff_l[i], (ArithExpr)argsCoeff_r[i]).simplify();
+                    coeff_normal[i] = ctx.mkSub((ArithExpr) argsCoeff_l[i], (ArithExpr) argsCoeff_r[i]).simplify();
                 }
-                constant_normal = ctx.mkSub((ArithExpr)constant_l, (ArithExpr)constant_r).simplify();
+                constant_normal = ctx.mkSub((ArithExpr) constant_l, (ArithExpr) constant_r).simplify();
             }
             if (nnCond.isGT()) {
                 for (int i = 0; i < size; i++) {
-                    coeff_normal[i] = ctx.mkSub((ArithExpr)argsCoeff_l[i], (ArithExpr)argsCoeff_r[i]).simplify();
+                    coeff_normal[i] = ctx.mkSub((ArithExpr) argsCoeff_l[i], (ArithExpr) argsCoeff_r[i]).simplify();
                 }
-                constant_normal = ctx.mkSub(ctx.mkSub((ArithExpr)constant_l, (ArithExpr)constant_r), ctx.mkInt(1)).simplify();
+                constant_normal = ctx.mkSub(ctx.mkSub((ArithExpr) constant_l, (ArithExpr) constant_r), ctx.mkInt(1)).simplify();
             }
             if (nnCond.isLE()) {
                 for (int i = 0; i < size; i++) {
-                    coeff_normal[i] = ctx.mkSub((ArithExpr)argsCoeff_r[i], (ArithExpr)argsCoeff_l[i]).simplify();
+                    coeff_normal[i] = ctx.mkSub((ArithExpr) argsCoeff_r[i], (ArithExpr) argsCoeff_l[i]).simplify();
                 }
-                constant_normal = ctx.mkSub((ArithExpr)constant_r, (ArithExpr)constant_l).simplify();
+                constant_normal = ctx.mkSub((ArithExpr) constant_r, (ArithExpr) constant_l).simplify();
             }
             if (nnCond.isLT()) {
                 for (int i = 0; i < size; i++) {
-                    coeff_normal[i] = ctx.mkSub((ArithExpr)argsCoeff_r[i], (ArithExpr)argsCoeff_l[i]).simplify();
+                    coeff_normal[i] = ctx.mkSub((ArithExpr) argsCoeff_r[i], (ArithExpr) argsCoeff_l[i]).simplify();
                 }
-                constant_normal = ctx.mkSub(ctx.mkSub((ArithExpr)constant_r, (ArithExpr)constant_l), ctx.mkInt(1)).simplify();
+                constant_normal = ctx.mkSub(ctx.mkSub((ArithExpr) constant_r, (ArithExpr) constant_l), ctx.mkInt(1)).simplify();
             }
             // if (nnCond.isEq()) {
 
@@ -272,7 +273,7 @@ public class Region {
             //         coeff_normal[i] = ctx.mkSub((ArithExpr)argsCoeff_l[i], (ArithExpr)argsCoeff_r[i]).simplify();
             //     }
             //     constant_normal = ctx.mkSub((ArithExpr)constant_l, (ArithExpr)constant_r).simplify();
-                    
+
             // }
             region_map.put(coeff_normal, constant_normal);
         }
@@ -298,7 +299,7 @@ public class Region {
             Expr expr = todo.remove();
             if (expr.isAnd()) {
                 Expr[] args = expr.getArgs();
-                for (Expr arg: args) {
+                for (Expr arg : args) {
                     todo.add(arg);
                 }
                 continue;
@@ -322,7 +323,7 @@ public class Region {
         for (Expr c : condList) {
             eliminate_negation(c, nnCondList, neTermList, ctx);
         }
-        
+
         // Construct NEq condition list
         // Unavoidable exponential blow-up here
         List<List<Expr>> neCondList = new ArrayList<List<Expr>>();
@@ -338,10 +339,10 @@ public class Region {
         }
 
         int j = 0;
-        for (List<Expr> neCond: neCondList) {
+        for (List<Expr> neCond : neCondList) {
             // Parsing of NEQ converted Exprs
-            Map<Expr[], Expr> full_region_map = new LinkedHashMap<Expr[], Expr>((LinkedHashMap<Expr[], Expr>)region_map);
-            for (Expr cond: neCond) {
+            Map<Expr[], Expr> full_region_map = new LinkedHashMap<Expr[], Expr>((LinkedHashMap<Expr[], Expr>) region_map);
+            for (Expr cond : neCond) {
                 normalize(cond, ctx, full_region_map);
             }
 
@@ -350,7 +351,7 @@ public class Region {
                 Expr[] coeff = entry.getKey();
                 Expr constnt = entry.getValue();
                 int len = coeff.length;
-                int[] coefficient= new int[len];
+                int[] coefficient = new int[len];
                 int constant;
                 for (int i = 0; i < coeff.length; i++) {
                     coefficient[i] = convertExprToInt(coeff[i]);
@@ -360,7 +361,7 @@ public class Region {
             }
             if (full_region_map.size() == 0) {
                 int[] coeff = new int[vars.size()];
-                region_array[j].addCond(coeff,0);
+                region_array[j].addCond(coeff, 0);
             }
             j = j + 1;
         }

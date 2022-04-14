@@ -1,5 +1,7 @@
 import java.util.*;
+
 import com.microsoft.z3.*;
+
 import java.util.logging.Logger;
 
 public class SSICommu extends SSI {
@@ -30,17 +32,17 @@ public class SSICommu extends SSI {
             this.results = null;
             return;
         }
-        BoolExpr sideCondition = ctx.mkGe((ArithExpr)commuCache[0], (ArithExpr)commuCache[1]);
+        BoolExpr sideCondition = ctx.mkGe((ArithExpr) commuCache[0], (ArithExpr) commuCache[1]);
         sideConstrt = ctx.mkImplies(
                 sideCondition,
-                (BoolExpr)sideConstrt
-                );
+                (BoolExpr) sideConstrt
+        );
         logger.info("Onesided constraint:" + sideConstrt.toString());
 
         logger.info("Pushing in Nots in the constraint");
         try {
             this.pushedConstr = pushInNots(sideConstrt);
-        } catch(SSIException e) {
+        } catch (SSIException e) {
             this.results = null;
             return;
         }
@@ -97,10 +99,10 @@ public class SSICommu extends SSI {
                     commuCache = args;
                     return orig;
                 } else if (commuCache[0].equals(args[0]) &&
-                           commuCache[1].equals(args[1])) {
+                        commuCache[1].equals(args[1])) {
                     return orig;
                 } else if (commuCache[1].equals(args[0]) &&
-                           commuCache[0].equals(args[1])) {
+                        commuCache[0].equals(args[1])) {
                     return orig.update(new Expr[]{args[1], args[0]});
                 } else {
                     logger.severe("CommuCache:" + Arrays.toString(commuCache));
@@ -110,7 +112,7 @@ public class SSICommu extends SSI {
             } else {
                 List<Expr> newArgs = new ArrayList<Expr>();
                 Expr[] args = orig.getArgs();
-                for (Expr e: args) {
+                for (Expr e : args) {
                     newArgs.add(this.exchangeCommu(e));
                 }
                 return orig.update(newArgs.toArray(new Expr[newArgs.size()]));

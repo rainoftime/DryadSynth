@@ -1,5 +1,7 @@
 import java.util.*;
+
 import com.microsoft.z3.*;
+
 import java.util.logging.Logger;
 
 public class SSI extends Thread {
@@ -22,7 +24,8 @@ public class SSI extends Thread {
 
     public DefinedFunc results[];
 
-    public class SSIException extends Exception {}
+    public class SSIException extends Exception {
+    }
 
     public SSI(Context ctx, SygusProblem problem, Logger logger, int numCore) {
         this.ctx = ctx;
@@ -36,10 +39,11 @@ public class SSI extends Thread {
         // constructITE() in large test cases
         // so we only do symbol based simplification here
         this.simp = ctx.repeat(ctx.then(
-                    ctx.mkTactic("simplify"),
-                    ctx.mkTactic("ctx-simplify")
-                    ), 8);
+                ctx.mkTactic("simplify"),
+                ctx.mkTactic("ctx-simplify")
+        ), 8);
     }
+
     public Expr getDef() throws SSIException {
         logger.info("Initializing SSI algorithm state.");
         this.compared.clear();
@@ -66,11 +70,11 @@ public class SSI extends Thread {
         return def;
     }
 
-    public void run(){
+    public void run() {
         logger.info("Pushing in Nots in the constraint");
         try {
             this.pushedConstr = pushInNots(problem.finalConstraint);
-        } catch(SSIException e) {
+        } catch (SSIException e) {
             this.results = null;
             return;
         }
@@ -78,13 +82,13 @@ public class SSI extends Thread {
 
         this.results = new DefinedFunc[problem.names.size()];
         int i = 0;
-        for (String funcName: problem.names) {
+        for (String funcName : problem.names) {
             this.name = funcName;
             logger.info("Working on func: " + funcName);
             Expr def;
             try {
                 def = this.getDef();
-            } catch(SSIException e) {
+            } catch (SSIException e) {
                 this.results = null;
                 return;
             }
@@ -104,10 +108,10 @@ public class SSI extends Thread {
 
     // This function rewrites all currently solved functions with their solutions,
     // then removes all non-current unsolved functions' occurence.
-    private Expr reduceConstr(Expr orig) throws SSIException{
+    private Expr reduceConstr(Expr orig) throws SSIException {
         // Rewrites all currently solved functions
         Expr rewritten = orig;
-        for (String funcName : this.partResults.keySet()){
+        for (String funcName : this.partResults.keySet()) {
             DefinedFunc func = this.partResults.get(funcName);
             FuncDecl decl = problem.rdcdRequests.get(funcName);
             rewritten = func.rewrite(rewritten, decl);
@@ -115,7 +119,7 @@ public class SSI extends Thread {
         return killNonCurrent(rewritten).simplify();
     }
 
-    private Expr killNonCurrent(Expr orig) throws SSIException{
+    private Expr killNonCurrent(Expr orig) throws SSIException {
         // For logical combinations,
         if (orig.isAnd() || orig.isOr()) {
             Expr[] args = new Expr[orig.getArgs().length];
@@ -144,8 +148,8 @@ public class SSI extends Thread {
             FuncDecl decl = expr.getFuncDecl();
             String funcName = decl.getName().toString();
             if (problem.names.contains(funcName) &&
-                !funcName.equals(this.name)) {
-                    return true;
+                    !funcName.equals(this.name)) {
+                return true;
             }
             boolean result = false;
             for (Expr arg : expr.getArgs()) {
@@ -163,7 +167,7 @@ public class SSI extends Thread {
         p.add("arith_lhs", true);
         if (orig.isApp()) {
             Expr[] args = orig.getArgs();
-            if (orig.isGE() || orig.isLT()|| orig.isGT() || orig.isLE() || orig.isEq()) {
+            if (orig.isGE() || orig.isLT() || orig.isGT() || orig.isLE() || orig.isEq()) {
                 logger.info("Atom: " + orig.toString());
                 Expr normed = orig.simplify(p);
                 Expr left = normed.getArgs()[0];
@@ -174,9 +178,9 @@ public class SSI extends Thread {
                 if (left.isAdd()) {
                     leftArgs = left.getArgs();
                 } else {
-                    leftArgs = new Expr[] {left};
+                    leftArgs = new Expr[]{left};
                 }
-                for (Expr expr: leftArgs) {
+                for (Expr expr : leftArgs) {
                     if (expr.isMul()) {
                         Expr inner = expr.getArgs()[1];
                         if (inner.isApp() && problem.rdcdRequests.values().contains(inner.getFuncDecl())) {
@@ -202,17 +206,17 @@ public class SSI extends Thread {
                 if (funcTerm == null) {
                     return orig;
                 }
-                right = ctx.mkMul(ctx.mkInt(-1), (ArithExpr)right);
+                right = ctx.mkMul(ctx.mkInt(-1), (ArithExpr) right);
                 remainingTerms.add(right);
-                funcTerm = ctx.mkMul(ctx.mkInt(-1), (ArithExpr)funcTerm);
-                normed = normed.update(new Expr[] {ctx.mkAdd(
-                            remainingTerms.toArray(new ArithExpr[remainingTerms.size()])
-                            ).simplify(), funcTerm.simplify() });
+                funcTerm = ctx.mkMul(ctx.mkInt(-1), (ArithExpr) funcTerm);
+                normed = normed.update(new Expr[]{ctx.mkAdd(
+                        remainingTerms.toArray(new ArithExpr[remainingTerms.size()])
+                ).simplify(), funcTerm.simplify()});
                 logger.info("Normalized:" + normed.toString());
                 return normed;
             }
             List<Expr> newArgs = new ArrayList<Expr>();
-            for (Expr arg: args) {
+            for (Expr arg : args) {
                 newArgs.add(this.normalizeExpr(arg));
             }
             return orig.update(newArgs.toArray(new Expr[newArgs.size()]));
@@ -225,7 +229,7 @@ public class SSI extends Thread {
             return ctx.mkInt(0);
         }
         Expr cond = this.partConstr;
-        Expr cand = (Expr)this.compared.toArray()[0];
+        Expr cand = (Expr) this.compared.toArray()[0];
         this.compared.remove(cand);
         cond = cond.substitute(this.funcExpr, cand);
         cond = SygusFormatter.elimITE(ctx, cond);
@@ -235,14 +239,15 @@ public class SSI extends Thread {
         // but since non-solver simplifications are cheap
         // We're doing it anyway
         Goal g = ctx.mkGoal(false, false, false);
-        g.add((BoolExpr)cond);
+        g.add((BoolExpr) cond);
         cond = simp.apply(g).getSubgoals()[0].AsBoolExpr();
 
-        return ctx.mkITE((BoolExpr)cond, cand, constructITE());
+        return ctx.mkITE((BoolExpr) cond, cand, constructITE());
     }
 
     // Cache for pushInNots' DP algorithm
     private Map<Expr, Expr> pushInNotsCache = new HashMap<Expr, Expr>();
+
     // This function pushes in not expressions to completely elminate them.
     protected Expr pushInNots(Expr expr) throws SSIException {
         if (pushInNotsCache.containsKey(expr)) {
@@ -263,73 +268,73 @@ public class SSI extends Thread {
                 return pushed;
             }
             if (inner.isAnd()) {
-                List<Expr> terms= new ArrayList<Expr>();
-                for (Expr term: innerArgs) {
-                    terms.add(ctx.mkNot((BoolExpr)term));
+                List<Expr> terms = new ArrayList<Expr>();
+                for (Expr term : innerArgs) {
+                    terms.add(ctx.mkNot((BoolExpr) term));
                 }
                 pushed = pushInNots(ctx.mkOr(terms.toArray(new BoolExpr[terms.size()])));
                 pushInNotsCache.put(expr, pushed);
                 return pushed;
             }
             if (inner.isOr()) {
-                List<Expr> terms= new ArrayList<Expr>();
-                for (Expr term: innerArgs) {
-                    terms.add(ctx.mkNot((BoolExpr)term));
+                List<Expr> terms = new ArrayList<Expr>();
+                for (Expr term : innerArgs) {
+                    terms.add(ctx.mkNot((BoolExpr) term));
                 }
                 pushed = pushInNots(ctx.mkAnd(terms.toArray(new BoolExpr[terms.size()])));
                 pushInNotsCache.put(expr, pushed);
                 return pushed;
             }
             if (inner.isGE()) {
-                pushed = pushInNots(ctx.mkLt((ArithExpr)innerArgs[0], (ArithExpr)innerArgs[1]));
+                pushed = pushInNots(ctx.mkLt((ArithExpr) innerArgs[0], (ArithExpr) innerArgs[1]));
                 pushInNotsCache.put(expr, pushed);
                 return pushed;
             }
             if (inner.isGT()) {
-                pushed = pushInNots(ctx.mkLe((ArithExpr)innerArgs[0], (ArithExpr)innerArgs[1]));
+                pushed = pushInNots(ctx.mkLe((ArithExpr) innerArgs[0], (ArithExpr) innerArgs[1]));
                 pushInNotsCache.put(expr, pushed);
                 return pushed;
             }
             if (inner.isLT()) {
-                pushed = pushInNots(ctx.mkGe((ArithExpr)innerArgs[0], (ArithExpr)innerArgs[1]));
+                pushed = pushInNots(ctx.mkGe((ArithExpr) innerArgs[0], (ArithExpr) innerArgs[1]));
                 pushInNotsCache.put(expr, pushed);
                 return pushed;
             }
             if (inner.isLE()) {
-                pushed = pushInNots(ctx.mkGt((ArithExpr)innerArgs[0], (ArithExpr)innerArgs[1]));
+                pushed = pushInNots(ctx.mkGt((ArithExpr) innerArgs[0], (ArithExpr) innerArgs[1]));
                 pushInNotsCache.put(expr, pushed);
                 return pushed;
             }
             if (inner.isEq()) {
                 pushed = pushInNots(ctx.mkOr(
-                            ctx.mkLt((ArithExpr)innerArgs[0], (ArithExpr)innerArgs[1]),
-                            ctx.mkGt((ArithExpr)innerArgs[0], (ArithExpr)innerArgs[1])
-                            ));
+                        ctx.mkLt((ArithExpr) innerArgs[0], (ArithExpr) innerArgs[1]),
+                        ctx.mkGt((ArithExpr) innerArgs[0], (ArithExpr) innerArgs[1])
+                ));
                 pushInNotsCache.put(expr, pushed);
                 return pushed;
             }
             Expr innerPushed = pushInNots(inner);
-            pushed = pushInNots(ctx.mkNot((BoolExpr)innerPushed));
+            pushed = pushInNots(ctx.mkNot((BoolExpr) innerPushed));
             pushInNotsCache.put(expr, pushed);
             return pushed;
         }
         // Implies and ITEs with bool sort has implicit nots and must be pushed in as well
-        if (expr.isImplies())  {
+        if (expr.isImplies()) {
             Expr[] args = expr.getArgs();
-            Expr pushed = pushInNots(ctx.mkOr(ctx.mkNot((BoolExpr)args[0]), (BoolExpr)args[1]));
+            Expr pushed = pushInNots(ctx.mkOr(ctx.mkNot((BoolExpr) args[0]), (BoolExpr) args[1]));
             pushInNotsCache.put(expr, pushed);
             return pushed;
         }
         if (expr.isITE() && expr.isBool()) {
             Expr[] args = expr.getArgs();
             Expr pushed = pushInNots(ctx.mkAnd(
-                                ctx.mkOr(ctx.mkNot((BoolExpr)args[0]), (BoolExpr)args[1]),
-                                ctx.mkOr((BoolExpr)args[0], (BoolExpr)args[2])));
+                    ctx.mkOr(ctx.mkNot((BoolExpr) args[0]), (BoolExpr) args[1]),
+                    ctx.mkOr((BoolExpr) args[0], (BoolExpr) args[2])));
             pushInNotsCache.put(expr, pushed);
             return pushed;
         }
 
-        if (expr.isApp()){
+        if (expr.isApp()) {
             FuncDecl decl = expr.getFuncDecl();
             Expr[] args = new Expr[expr.getArgs().length];
             int i = 0;
@@ -350,30 +355,30 @@ public class SSI extends Thread {
         }
         if (expr.isApp()) {
             Expr[] args = expr.getArgs();
-            if (expr.isLE()|| expr.isGE()|| expr.isLT()|| expr.isGT()|| expr.isEq()) {
+            if (expr.isLE() || expr.isGE() || expr.isLT() || expr.isGT() || expr.isEq()) {
                 Expr left = args[0];
                 Expr right = args[1];
-                if (right.isApp() && problem.rdcdRequests.values().contains(right.getFuncDecl()))  {
-                    if (expr.isGE()|| expr.isLE()|| expr.isEq()) {
+                if (right.isApp() && problem.rdcdRequests.values().contains(right.getFuncDecl())) {
+                    if (expr.isGE() || expr.isLE() || expr.isEq()) {
                         this.compared.add(left);
                     } else if (expr.isGT()) {
-                        this.compared.add(ctx.mkSub((ArithExpr)left, ctx.mkInt(1)));
+                        this.compared.add(ctx.mkSub((ArithExpr) left, ctx.mkInt(1)));
                     } else if (expr.isLT()) {
-                        this.compared.add(ctx.mkAdd((ArithExpr)left, ctx.mkInt(1)));
+                        this.compared.add(ctx.mkAdd((ArithExpr) left, ctx.mkInt(1)));
                     }
                     this.callCache = right.getArgs();
                 } else if (right.isMul()) {
                     Expr inner = right.getArgs()[1];
-                    if(inner.isApp() && problem.rdcdRequests.values().contains(inner.getFuncDecl())) {
+                    if (inner.isApp() && problem.rdcdRequests.values().contains(inner.getFuncDecl())) {
                         if (right.getArgs()[0].equals(ctx.mkInt(-1))) {
-                            if (expr.isGE()|| expr.isLE()|| expr.isEq()) {
-                                this.compared.add(ctx.mkMul(ctx.mkInt(-1), (ArithExpr)left).simplify());
+                            if (expr.isGE() || expr.isLE() || expr.isEq()) {
+                                this.compared.add(ctx.mkMul(ctx.mkInt(-1), (ArithExpr) left).simplify());
                             } else if (expr.isGT()) {
-                                this.compared.add(ctx.mkMul(ctx.mkInt(-1), ctx.mkSub((ArithExpr)left, ctx.mkInt(1))).simplify());
+                                this.compared.add(ctx.mkMul(ctx.mkInt(-1), ctx.mkSub((ArithExpr) left, ctx.mkInt(1))).simplify());
                             } else if (expr.isLT()) {
-                                this.compared.add(ctx.mkMul(ctx.mkInt(-1), ctx.mkAdd((ArithExpr)left, ctx.mkInt(1))).simplify());
+                                this.compared.add(ctx.mkMul(ctx.mkInt(-1), ctx.mkAdd((ArithExpr) left, ctx.mkInt(1))).simplify());
                             }
-                        this.callCache = inner.getArgs();
+                            this.callCache = inner.getArgs();
                         } else {
                             throw new SSIException();
                         }
@@ -381,7 +386,7 @@ public class SSI extends Thread {
                 }
             }
             // Handling arguments.
-            for (Expr arg: args) {
+            for (Expr arg : args) {
                 this.scanExpr(arg);
             }
         }

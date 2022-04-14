@@ -1,11 +1,12 @@
 import java.util.*;
+
 import com.microsoft.z3.*;
 import com.microsoft.z3.enumerations.Z3_ast_print_mode;
 
 
 public class DefinedFunc {
 
-    DefinedFunc (Context ctx, String name, Expr[] args, Expr definition, String[] strArgs,  ASTGeneral ASTDef) {
+    DefinedFunc(Context ctx, String name, Expr[] args, Expr definition, String[] strArgs, ASTGeneral ASTDef) {
         this.ctx = ctx;
         this.name = name;
         this.args = args;
@@ -48,15 +49,15 @@ public class DefinedFunc {
 
     Context ctx;
     String name;
-    Expr [] args;
-    String [] strArgs;
-    ASTGeneral [] astArgs;
+    Expr[] args;
+    String[] strArgs;
+    ASTGeneral[] astArgs;
     Expr definition;
     int numArgs;
     FuncDecl decl;
     ASTGeneral ASTDef = null;
 
-    public Expr apply(Expr... argList){
+    public Expr apply(Expr... argList) {
         return definition.substitute(args, argList);
     }
 
@@ -73,7 +74,7 @@ public class DefinedFunc {
             return this;
         }
         Expr[] newArgs = new Expr[this.args.length];
-        for(int i = 0; i < this.args.length; i++) {
+        for (int i = 0; i < this.args.length; i++) {
             newArgs[i] = this.args[i].translate(ctx);
         }
         if (ASTDef == null) {
@@ -95,16 +96,16 @@ public class DefinedFunc {
         boolean visited;
         ASTGeneral tree;
         List<ASTGeneral> newChildren = new ArrayList<ASTGeneral>();
-        while(!todo.empty()) {
+        while (!todo.empty()) {
             tree = todo.peek();
-            if (tree.isLeaf()){
+            if (tree.isLeaf()) {
                 todo.pop();
                 cache.put(tree, new ASTGeneral(tree));
             } else {
                 visited = true;
                 newChildren.clear();
                 for (ASTGeneral child : tree.children) {
-                    if(!cache.containsKey(child)) {
+                    if (!cache.containsKey(child)) {
                         todo.push(child);
                         visited = false;
                     } else {
@@ -134,7 +135,7 @@ public class DefinedFunc {
 
         boolean visited;
         Expr expr, newExpr, body;
-        Expr [] args, newArgsArray;
+        Expr[] args, newArgsArray;
         List<Expr> newArgs = new ArrayList<Expr>();
         FuncDecl exprFunc;
         while (!todo.empty()) {
@@ -146,7 +147,7 @@ public class DefinedFunc {
                 visited = true;
                 newArgs.clear();
                 args = expr.getArgs();
-                for (Expr arg: args) {
+                for (Expr arg : args) {
                     if (!cache.containsKey(arg)) {
                         todo.push(arg);
                         visited = false;
@@ -165,11 +166,11 @@ public class DefinedFunc {
                     }
                     cache.put(expr, newExpr);
                 }
-            } else if(expr.isQuantifier()) {
-                body = ((Quantifier)expr).getBody();
+            } else if (expr.isQuantifier()) {
+                body = ((Quantifier) expr).getBody();
                 if (cache.containsKey(body)) {
                     todo.pop();
-                    newExpr = expr.update(new Expr[]{ cache.get(body) });
+                    newExpr = expr.update(new Expr[]{cache.get(body)});
                     cache.put(expr, newExpr);
                 } else {
                     todo.push(body);
@@ -186,7 +187,7 @@ public class DefinedFunc {
         return name;
     }
 
-    public final Expr[] getArgs () {
+    public final Expr[] getArgs() {
         return args;
     }
 

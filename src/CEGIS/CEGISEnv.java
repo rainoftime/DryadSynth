@@ -1,5 +1,7 @@
 import java.util.*;
+
 import com.microsoft.z3.*;
+
 import java.util.concurrent.atomic.*;
 
 public class CEGISEnv {
@@ -22,8 +24,9 @@ public class CEGISEnv {
     public enum FeedType {
         ALLINONE, FIXED, HEIGHTONLY, HEIGHTANDCOND;
     }
+
     public FeedType feedType = null;
-	public Set<Expr[]> counterExamples = new LinkedHashSet<Expr[]>();
+    public Set<Expr[]> counterExamples = new LinkedHashSet<Expr[]>();
 
     // public Map<Expr, Set<Expr[]>> cntrExpMap = new LinkedHashMap<Expr, Set<Expr[]>>();
     // public Map<Expr, Map<Integer, DefinedFunc[]>> triedProblem = new LinkedHashMap<Expr, Map<Integer, DefinedFunc[]>>();
@@ -31,6 +34,7 @@ public class CEGISEnv {
     public class Tmplts {
         public DefinedFunc[] array = null;
     }
+
     Tmplts lastTmplts = new Tmplts();
     public AtomicInteger runningThreads = new AtomicInteger(0);
 }

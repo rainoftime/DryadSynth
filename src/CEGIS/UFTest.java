@@ -1,9 +1,11 @@
 import com.microsoft.z3.*;
+
 import java.util.*;
+
 import com.microsoft.z3.enumerations.Z3_ast_print_mode;
 
 public class UFTest {
-    public static void main(String [] args) {
+    public static void main(String[] args) {
         Context ctx = new Context();
         Solver solver = ctx.mkSolver();
         Model model = null;
@@ -11,10 +13,10 @@ public class UFTest {
         FuncDecl f = ctx.mkFuncDecl("f", new Sort[]{ctx.mkIntSort(), ctx.mkIntSort()}, ctx.mkIntSort());
         Expr x = ctx.mkConst("x", ctx.mkIntSort());
         Expr y = ctx.mkConst("y", ctx.mkIntSort());
-        Expr spec = ctx.mkAnd(ctx.mkGe((IntExpr)f.apply(x, y), (ArithExpr)x),
-                                ctx.mkGe((IntExpr)f.apply(x, y), (ArithExpr)y),
-                                ctx.mkEq((IntExpr)f.apply(x, y), x),
-                                ctx.mkEq((IntExpr)f.apply(x, y), y));
+        Expr spec = ctx.mkAnd(ctx.mkGe((IntExpr) f.apply(x, y), (ArithExpr) x),
+                ctx.mkGe((IntExpr) f.apply(x, y), (ArithExpr) y),
+                ctx.mkEq((IntExpr) f.apply(x, y), x),
+                ctx.mkEq((IntExpr) f.apply(x, y), y));
         System.out.println("Specification: " + spec);
         System.out.println();
 
@@ -24,19 +26,19 @@ public class UFTest {
         FuncDecl uf0 = ctx.mkFuncDecl("uf0", domain, range);
         FuncDecl uf1 = ctx.mkFuncDecl("uf1", domain, range);
         FuncDecl sub = ctx.mkFuncDecl("sub", new Sort[]{ctx.mkIntSort(), ctx.mkIntSort()}, ctx.mkBoolSort());
-        Expr body = ctx.mkITE((BoolExpr)sub.apply(arguments), uf0.apply(arguments), uf1.apply(arguments));
+        Expr body = ctx.mkITE((BoolExpr) sub.apply(arguments), uf0.apply(arguments), uf1.apply(arguments));
         DefinedFunc definedfunc = new DefinedFunc(ctx, arguments, body);
-        BoolExpr newSpec = (BoolExpr)definedfunc.rewrite(spec, f);
+        BoolExpr newSpec = (BoolExpr) definedfunc.rewrite(spec, f);
         System.out.println("Transformed spec: " + newSpec);
         System.out.println();
 
         solver.push();
-        solver.add(ctx.mkNot((BoolExpr)newSpec));
+        solver.add(ctx.mkNot((BoolExpr) newSpec));
         System.out.println("Input to solver with newSpec: " + solver);
         System.out.println();
         solver.pop();
 
-        solver.add(ctx.mkNot((BoolExpr)spec));
+        solver.add(ctx.mkNot((BoolExpr) spec));
         System.out.println("Input to solver with spec: " + solver);
         Status result = solver.check();
         if (result == Status.SATISFIABLE) {
@@ -62,7 +64,7 @@ public class UFTest {
             System.out.println("Definition of f in CE: " + defn_f);
 
             DefinedFunc func = new DefinedFunc(ctx, "f", new Expr[]{x, y}, defn_f);
-            Expr rewritten = (BoolExpr)func.rewrite(spec, f);
+            Expr rewritten = (BoolExpr) func.rewrite(spec, f);
             System.out.println("Rewritten with defn: " + rewritten);
         }
 
@@ -81,9 +83,9 @@ public class UFTest {
             }
             Expr condition = ctx.mkTrue();
             for (int i = 0; i < args.length; i++) {
-                condition = ctx.mkAnd((BoolExpr)condition, ctx.mkEq(args[i], arguments[i]));
+                condition = ctx.mkAnd((BoolExpr) condition, ctx.mkEq(args[i], arguments[i]));
             }
-            defn = ctx.mkITE((BoolExpr)condition, value, defn);
+            defn = ctx.mkITE((BoolExpr) condition, value, defn);
         }
         return defn.simplify();
         // return defn;

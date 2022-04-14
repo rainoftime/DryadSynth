@@ -1,4 +1,5 @@
 import java.util.*;
+
 import com.microsoft.z3.*;
 
 public class SygusProblem {
@@ -44,17 +45,21 @@ public class SygusProblem {
     public enum SybType {
         LITERAL, GLBVAR, FUNC, SYMBOL, LCLARG, CSTINT, CSTBOL;
     }
+
     // Inner grammar class
     public static class CFG {
         private Context ctx;
         public Map<String, Sort> grammarSybSort = new LinkedHashMap<String, Sort>();
-        public Map<String, List<String[]>>  grammarRules = new LinkedHashMap<String, List<String[]>>();
+        public Map<String, List<String[]>> grammarRules = new LinkedHashMap<String, List<String[]>>();
         // For symbol resolving
         public Map<String, SybType> sybTypeTbl = new LinkedHashMap<String, SybType>();
         public Map<String, Expr> localArgs = new LinkedHashMap<String, Expr>();
 
-        public CFG(Context ctx) {this.ctx = ctx;}
-        public CFG(CFG src){
+        public CFG(Context ctx) {
+            this.ctx = ctx;
+        }
+
+        public CFG(CFG src) {
             this.ctx = src.ctx;
             this.grammarSybSort.putAll(src.grammarSybSort);
             for (String key : src.grammarRules.keySet()) {
@@ -71,7 +76,7 @@ public class SygusProblem {
             }
             CFG newcfg = new CFG(newctx);
             for (String key : this.grammarSybSort.keySet()) {
-                newcfg.grammarSybSort.put(key, (Sort)this.grammarSybSort.get(key).translate(newctx));
+                newcfg.grammarSybSort.put(key, (Sort) this.grammarSybSort.get(key).translate(newctx));
             }
             for (String key : this.grammarRules.keySet()) {
                 List<String[]> newList = new ArrayList<String[]>(this.grammarRules.get(key));
@@ -129,50 +134,50 @@ public class SygusProblem {
         }
         SygusProblem newProblem = new SygusProblem(ctx);
         newProblem.names.addAll(this.names);
-        for(String key : this.requests.keySet()) {
+        for (String key : this.requests.keySet()) {
             newProblem.requests.put(key, this.requests.get(key).translate(ctx));
         }
-        for(String key: this.requestArgs.keySet()){
+        for (String key : this.requestArgs.keySet()) {
             Expr[] argList = this.requestArgs.get(key);
             Expr[] newArgList = new Expr[argList.length];
-            for(int i = 0; i < argList.length; i++){
+            for (int i = 0; i < argList.length; i++) {
                 newArgList[i] = argList[i].translate(ctx);
             }
             newProblem.requestArgs.put(key, newArgList);
         }
-        for(String key: this.requestUsedArgs.keySet()){
+        for (String key : this.requestUsedArgs.keySet()) {
             Expr[] argList = this.requestUsedArgs.get(key);
             Expr[] newArgList = new Expr[argList.length];
-            for(int i = 0; i < argList.length; i++){
+            for (int i = 0; i < argList.length; i++) {
                 newArgList[i] = argList[i].translate(ctx);
             }
             newProblem.requestUsedArgs.put(key, newArgList);
         }
-        for(String key: this.requestSyntaxUsedArgs.keySet()){
+        for (String key : this.requestSyntaxUsedArgs.keySet()) {
             Expr[] argList = this.requestSyntaxUsedArgs.get(key);
             Expr[] newArgList = new Expr[argList.length];
-            for(int i = 0; i < argList.length; i++){
+            for (int i = 0; i < argList.length; i++) {
                 newArgList[i] = argList[i].translate(ctx);
             }
             newProblem.requestSyntaxUsedArgs.put(key, newArgList);
         }
-        for(String key : this.rdcdRequests.keySet()) {
+        for (String key : this.rdcdRequests.keySet()) {
             newProblem.rdcdRequests.put(key, this.rdcdRequests.get(key).translate(ctx));
         }
-        for(String key : this.candidate.keySet()) {
+        for (String key : this.candidate.keySet()) {
             newProblem.candidate.put(key, this.candidate.get(key).translate(ctx));
         }
         newProblem.problemType = this.problemType;
-        for(String key : this.vars.keySet()) {
+        for (String key : this.vars.keySet()) {
             newProblem.vars.put(key, this.vars.get(key).translate(ctx));
         }
-        for(String key : this.regularVars.keySet()) {
+        for (String key : this.regularVars.keySet()) {
             newProblem.regularVars.put(key, this.regularVars.get(key).translate(ctx));
         }
-        for(BoolExpr expr : this.constraints) {
-            newProblem.constraints.add((BoolExpr)expr.translate(ctx));
+        for (BoolExpr expr : this.constraints) {
+            newProblem.constraints.add((BoolExpr) expr.translate(ctx));
         }
-        for(String key : this.invConstraints.keySet()) {
+        for (String key : this.invConstraints.keySet()) {
             DefinedFunc[] funcs = new DefinedFunc[3];
             DefinedFunc[] origFuncs = this.invConstraints.get(key);
             for (int i = 0; i < 3; i++) {
@@ -180,18 +185,18 @@ public class SygusProblem {
             }
             newProblem.invConstraints.put(key, funcs);
         }
-        newProblem.combinedConstraint = (BoolExpr)this.combinedConstraint.translate(ctx);
-        newProblem.invCombinedConstraint = (BoolExpr)this.invCombinedConstraint.translate(ctx);
+        newProblem.combinedConstraint = (BoolExpr) this.combinedConstraint.translate(ctx);
+        newProblem.invCombinedConstraint = (BoolExpr) this.invCombinedConstraint.translate(ctx);
         if (this.finalConstraint != null) {
-            newProblem.finalConstraint = (BoolExpr)this.finalConstraint.translate(ctx);
+            newProblem.finalConstraint = (BoolExpr) this.finalConstraint.translate(ctx);
         }
-        for(String key : this.funcs.keySet()) {
+        for (String key : this.funcs.keySet()) {
             newProblem.funcs.put(key, this.funcs.get(key).translate(ctx));
         }
         newProblem.opDis = new OpDispatcher(newProblem.ctx, newProblem.requests, newProblem.funcs);
 
         newProblem.glbSybTypeTbl.putAll(this.glbSybTypeTbl);
-        for(String key : this.cfgs.keySet()) {
+        for (String key : this.cfgs.keySet()) {
             newProblem.cfgs.put(key, this.cfgs.get(key).translate(ctx));
         }
         newProblem.isGeneral = this.isGeneral;
@@ -215,7 +220,7 @@ public class SygusProblem {
 
     public SygusProblem createINVSubProblem(Expr[] usedArgs, Expr[] usedArgswprime, Expr pre, Expr trans, Expr post) {
         String name = this.names.get(0);        // names.size() should be 1
-        
+
         // // prescreen to eliminate unused variables
         // Set<Expr> usedInPre = SygusExtractor.scanForVars(pre);
         // Set<Expr> usedInTrans = SygusExtractor.scanForVars(trans);
@@ -291,22 +296,22 @@ public class SygusProblem {
         pblm.invConstraints.put(name, newfuncs);
 
         Expr[] transArgs = newfuncs[1].getArgs();
-        Expr[] transArgsOrig = Arrays.copyOfRange(transArgs, 0, transArgs.length/2);
-        Expr[] transArgsPrime = Arrays.copyOfRange(transArgs, transArgs.length/2, transArgs.length);
-        BoolExpr startCstrt = ctx.mkImplies((BoolExpr)newfuncs[0].getDef(),
-                                (BoolExpr)rdcdFunc.apply(newfuncs[0].getArgs()));
-        BoolExpr loopCstrt = ctx.mkImplies(ctx.mkAnd((BoolExpr)newfuncs[1].getDef(),
-                                                (BoolExpr)rdcdFunc.apply(transArgsOrig)),
-                                (BoolExpr)rdcdFunc.apply(transArgsPrime));
-        BoolExpr endCstrt = ctx.mkImplies((BoolExpr)rdcdFunc.apply(newfuncs[2].getArgs()),
-                                (BoolExpr)newfuncs[2].getDef());
+        Expr[] transArgsOrig = Arrays.copyOfRange(transArgs, 0, transArgs.length / 2);
+        Expr[] transArgsPrime = Arrays.copyOfRange(transArgs, transArgs.length / 2, transArgs.length);
+        BoolExpr startCstrt = ctx.mkImplies((BoolExpr) newfuncs[0].getDef(),
+                (BoolExpr) rdcdFunc.apply(newfuncs[0].getArgs()));
+        BoolExpr loopCstrt = ctx.mkImplies(ctx.mkAnd((BoolExpr) newfuncs[1].getDef(),
+                (BoolExpr) rdcdFunc.apply(transArgsOrig)),
+                (BoolExpr) rdcdFunc.apply(transArgsPrime));
+        BoolExpr endCstrt = ctx.mkImplies((BoolExpr) rdcdFunc.apply(newfuncs[2].getArgs()),
+                (BoolExpr) newfuncs[2].getDef());
 
         pblm.constraints.add(startCstrt);
         pblm.constraints.add(loopCstrt);
         pblm.constraints.add(endCstrt);
 
         pblm.invCombinedConstraint = ctx.mkAnd(startCstrt, loopCstrt, endCstrt);
-        pblm.finalConstraint = (BoolExpr)ctx.mkAnd(pblm.combinedConstraint, pblm.invCombinedConstraint).simplify();
+        pblm.finalConstraint = (BoolExpr) ctx.mkAnd(pblm.combinedConstraint, pblm.invCombinedConstraint).simplify();
 
         pblm.funcs = new LinkedHashMap<String, DefinedFunc>(this.funcs);
         pblm.funcs.put(origfuncs[0].getName(), newfuncs[0]);

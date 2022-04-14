@@ -4,6 +4,7 @@ import java.util.Comparator;
 import java.util.logging.Logger;
 import java.util.logging.FileHandler;
 import java.util.logging.SimpleFormatter;
+
 import com.microsoft.z3.enumerations.Z3_ast_print_mode;
 import com.microsoft.z3.*;
 
@@ -11,6 +12,7 @@ public class SygusDispatcher {
     public enum SolveMethod {
         PRESCREENED, CEGIS, SSI, SSICOMM, AT, GENERALDNC, INVDNC
     }
+
     SolveMethod method = SolveMethod.CEGIS;
     Context z3ctx;
     SygusExtractor extractor;
@@ -30,31 +32,36 @@ public class SygusDispatcher {
     boolean heightsOnly = false;
     boolean methodOnly = false;
     Thread mainThread;
-    Thread [] threads = null;
+    Thread[] threads = null;
     Map<String, Expr[]> callCache = null;
     Set<String> funcCalled = null;
     CEGISEnv env = null;
     DnCEnv dncEnv = null;
     Expr dncBaseExpr = null;
     Expr[] dncBaseArgs = null;
+
     // SygusProblem[] invdncProblem = null;
     // boolean invDnC = false;
     public enum DnCType {
         RECPOST, CROSSPRE, RCCRSS
     }
+
     DnCType dnctype = DnCType.RECPOST;
 
     InvDnC preparedDnC;
     AT preparedAT;
-    Thread [] fallbackCEGIS = null;
+    Thread[] fallbackCEGIS = null;
 
     boolean nosolution = false;
+
     public enum ConvertMethod {
         FULLCLIA, ADDSUB, ITEWOSUB, ITEWOADDSUB, CONSTONLY, TENSONLY, NONE
     }
+
     public enum CoeffRange {
         ADDONLY, ADDSUB, TENSEQUAL, TENS, NONE
     }
+
     Map<String, CoeffRange> coeffRange;
     ConvertMethod converted = ConvertMethod.NONE;
     String[] resultStr = null;
@@ -96,11 +103,11 @@ public class SygusDispatcher {
         this.EUSolverPath = EUSolverPath;
     }
 
-    public SolveMethod getMethod(){
+    public SolveMethod getMethod() {
         return method;
     }
 
-    public ConvertMethod getConverted(){
+    public ConvertMethod getConverted() {
         return converted;
     }
 
@@ -255,7 +262,7 @@ public class SygusDispatcher {
         return;
     }
 
-    public void initAlgorithm() throws Exception{
+    public void initAlgorithm() throws Exception {
         if (this.method == SolveMethod.PRESCREENED) {
             logger.info("Taking parsed candidates, skipping algorithm initialization.");
             return;
@@ -267,7 +274,7 @@ public class SygusDispatcher {
         // env.original = new SygusProblem(problem);
         env.problem = new SygusProblem(problem);
         boolean isINV = true;   // CLIA benchmarks do not synthesize boolean functions
-        for(String name : problem.names) {
+        for (String name : problem.names) {
             FuncDecl func = problem.rdcdRequests.get(name);
             if (!func.getRange().toString().equals("Bool")) {
                 isINV = false;
@@ -316,7 +323,7 @@ public class SygusDispatcher {
                 } else {
                     fallbackCEGIS[i] = new Cegis(env, threadLogger);
                 }
-                ((Cegis)fallbackCEGIS[i]).iterLimit = this.iterLimit;
+                ((Cegis) fallbackCEGIS[i]).iterLimit = this.iterLimit;
             }
         } else {
             if (enableITCEGIS) {
@@ -324,7 +331,7 @@ public class SygusDispatcher {
             } else {
                 fallbackCEGIS[0] = new Cegis(z3ctx, env, logger);
             }
-            ((Cegis)fallbackCEGIS[0]).iterLimit = this.iterLimit;
+            ((Cegis) fallbackCEGIS[0]).iterLimit = this.iterLimit;
         }
 
         if (this.method == SolveMethod.GENERALDNC) {
@@ -359,11 +366,11 @@ public class SygusDispatcher {
                     threadHandler.setFormatter(new SimpleFormatter());
                     threadLogger.addHandler(threadHandler);
                     threads[i] = new DnCegis(dncEnv, threadLogger);
-                    ((Cegis)threads[i]).iterLimit = this.iterLimit;
+                    ((Cegis) threads[i]).iterLimit = this.iterLimit;
                 }
             } else {
                 threads[0] = new DnCegis(z3ctx, dncEnv, logger);
-                ((Cegis)threads[0]).iterLimit = this.iterLimit;
+                ((Cegis) threads[0]).iterLimit = this.iterLimit;
             }
         }
 
@@ -441,7 +448,7 @@ public class SygusDispatcher {
 
     }
 
-    public DefinedFunc[] runAlgorithm() throws Exception{
+    public DefinedFunc[] runAlgorithm() throws Exception {
         if (this.method == SolveMethod.PRESCREENED) {
             logger.info("Outputing parsed candidates as results.");
             List<DefinedFunc> resList = new ArrayList<DefinedFunc>();
@@ -458,39 +465,39 @@ public class SygusDispatcher {
                 for (int i = 0; i < numCore; i++) {
                     threads[i].start();
                 }
-        		while (results == null) {
-                    synchronized(dncEnv) {
+                while (results == null) {
+                    synchronized (dncEnv) {
                         dncEnv.wait();
                     }
-        			for (Thread thread : threads) {
-                        DnCegis cegis = (DnCegis)thread;
-        				if (cegis.results != null) {
+                    for (Thread thread : threads) {
+                        DnCegis cegis = (DnCegis) thread;
+                        if (cegis.results != null) {
                             results = cegis.results;
-        				}
-        			}
+                        }
+                    }
                     if (dncEnv.runningThreads.get() == 0) {
                         return results;
                     }
-        		}
+                }
             } else {
                 threads[0].run();
-                results = ((Cegis)threads[0]).results;
+                results = ((Cegis) threads[0]).results;
             }
         }
 
         if (this.method == SolveMethod.SSI) {
             logger.info("Starting SSI algorithms.");
             threads[0].run();
-            results = ((SSI)threads[0]).results;
+            results = ((SSI) threads[0]).results;
         }
 
         if (this.method == SolveMethod.SSICOMM) {
             logger.info("Starting SSI-Comm algorithms.");
             threads[0].run();
-            results = ((SSICommu)threads[0]).results;
+            results = ((SSICommu) threads[0]).results;
         }
 
-        if (this.method == SolveMethod.AT){
+        if (this.method == SolveMethod.AT) {
             // logger.info("Starting AT algorithms.");
             // threads[0].run();
             // results = ((AT)threads[0]).results;
@@ -500,20 +507,20 @@ public class SygusDispatcher {
                     threads[i].start();
                 }
                 while (results == null) {
-                    synchronized(env) {
+                    synchronized (env) {
                         env.wait();
                     }
                     int resultHeight = 0;
-                    AT at = (AT)threads[0];
+                    AT at = (AT) threads[0];
                     if (at.results != null) {
                         results = at.results;
                         logger.info("AT got results.");
                         if (methodOnly) {
                             System.out.println("AT");
                         }
-                    } 
+                    }
                     for (int i = 1; i < numCore; i++) {
-                        Cegis cegis = (Cegis)threads[i];
+                        Cegis cegis = (Cegis) threads[i];
                         if (cegis.results != null) {
                             results = cegis.results;
                             resultHeight = cegis.resultHeight;
@@ -528,9 +535,9 @@ public class SygusDispatcher {
                     if (env.runningThreads.get() == 0) {
                         return results;
                     }
-                    if (env.checkITOnly){
+                    if (env.checkITOnly) {
                         for (int i = 1; i < numCore; i++) {
-                            Cegis cegis = (Cegis)threads[i];
+                            Cegis cegis = (Cegis) threads[i];
                             cegis.running = false;
                         }
                         return results;
@@ -549,31 +556,31 @@ public class SygusDispatcher {
                     System.out.println("AT");
                 }
                 threads[0].run();
-                results = ((AT)threads[0]).results;
+                results = ((AT) threads[0]).results;
             }
 
         }
 
-        if (this.method == SolveMethod.INVDNC){
+        if (this.method == SolveMethod.INVDNC) {
             if (numCore > 1) {
                 for (int i = 0; i < numCore; i++) {
                     threads[i].start();
                 }
                 while (results == null) {
-                    synchronized(env) {
+                    synchronized (env) {
                         env.wait();
                     }
                     int resultHeight = 0;
-                    InvDnC invdnc = (InvDnC)threads[0];
+                    InvDnC invdnc = (InvDnC) threads[0];
                     if (invdnc.results != null) {
                         results = invdnc.results;
                         logger.info("INV DnC got results.");
                         if (methodOnly) {
                             System.out.println("INVDNC");
                         }
-                    } 
+                    }
                     for (int i = 1; i < numCore; i++) {
-                        Cegis cegis = (Cegis)threads[i];
+                        Cegis cegis = (Cegis) threads[i];
                         if (cegis.results != null) {
                             results = cegis.results;
                             resultHeight = cegis.resultHeight;
@@ -588,9 +595,9 @@ public class SygusDispatcher {
                     if (env.runningThreads.get() == 0) {
                         return results;
                     }
-                    if (env.checkITOnly){
+                    if (env.checkITOnly) {
                         for (int i = 1; i < numCore; i++) {
-                            Cegis cegis = (Cegis)threads[i];
+                            Cegis cegis = (Cegis) threads[i];
                             cegis.running = false;
                         }
                         return results;
@@ -609,7 +616,7 @@ public class SygusDispatcher {
                     System.out.println("INVDNC");
                 }
                 threads[0].run();
-                results = ((InvDnC)threads[0]).results;
+                results = ((InvDnC) threads[0]).results;
             }
         }
 
@@ -619,27 +626,27 @@ public class SygusDispatcher {
                 for (int i = 0; i < numCore; i++) {
                     fallbackCEGIS[i].start();
                 }
-        		while (results == null) {
-                    synchronized(env) {
+                while (results == null) {
+                    synchronized (env) {
                         env.wait();
                     }
                     int resultHeight = 0;
-        			for (Thread thread : fallbackCEGIS) {
-                        Cegis cegis = (Cegis)thread;
-        				if (cegis.results != null) {
+                    for (Thread thread : fallbackCEGIS) {
+                        Cegis cegis = (Cegis) thread;
+                        if (cegis.results != null) {
                             results = cegis.results;
                             resultHeight = cegis.resultHeight;
                             if (cegis.nosolution) {
                                 nosolution = true;
                             }
-        				}
-        			}
+                        }
+                    }
                     if (env.runningThreads.get() == 0) {
                         return results;
                     }
-                    if (env.checkITOnly){
+                    if (env.checkITOnly) {
                         for (Thread thread : fallbackCEGIS) {
-                            Cegis cegis = (Cegis)thread;
+                            Cegis cegis = (Cegis) thread;
                             cegis.running = false;
                         }
                         return results;
@@ -648,13 +655,13 @@ public class SygusDispatcher {
                         System.out.println("resultHeight:" + new Integer(resultHeight).toString());
                         return null;
                     }
-        		}
+                }
             } else {
                 int resultHeight;
                 fallbackCEGIS[0].run();
-                results = ((Cegis)fallbackCEGIS[0]).results;
-                resultHeight = ((Cegis)fallbackCEGIS[0]).resultHeight;
-                if (((Cegis)fallbackCEGIS[0]).nosolution) {
+                results = ((Cegis) fallbackCEGIS[0]).results;
+                resultHeight = ((Cegis) fallbackCEGIS[0]).resultHeight;
+                if (((Cegis) fallbackCEGIS[0]).nosolution) {
                     nosolution = true;
                 }
                 if (heightsOnly) {
@@ -668,6 +675,7 @@ public class SygusDispatcher {
     }
 
     boolean iteConverted = true;
+
     public void postFormatting(DefinedFunc[] results) {
         if (this.converted == ConvertMethod.NONE) {
             logger.info("Nothing to format.");
@@ -794,19 +802,19 @@ public class SygusDispatcher {
                     String name = vars[i].toString();
                     primedArgs[i] = ctx.mkConst(name + "!", vars[i].getSort());
                 }
-                BoolExpr inductive = ctx.mkImplies(ctx.mkAnd((BoolExpr)trans.getDef(),
-                                            (BoolExpr)invapp),
-                                    (BoolExpr)inv.apply(primedArgs));
+                BoolExpr inductive = ctx.mkImplies(ctx.mkAnd((BoolExpr) trans.getDef(),
+                        (BoolExpr) invapp),
+                        (BoolExpr) inv.apply(primedArgs));
                 // logger.info("inductive before rewriting: " + inductive);
-                Expr newDef = ctx.mkAnd((BoolExpr)post.getDef(), ctx.mkOr((BoolExpr)pre.getDef(), (BoolExpr)invapp));
+                Expr newDef = ctx.mkAnd((BoolExpr) post.getDef(), ctx.mkOr((BoolExpr) pre.getDef(), (BoolExpr) invapp));
                 // logger.info("new inv with template: " + newDef);
                 DefinedFunc newinv = new DefinedFunc(ctx, key, vars, newDef);
-                inductive = (BoolExpr)newinv.rewrite(inductive, inv);
+                inductive = (BoolExpr) newinv.rewrite(inductive, inv);
                 // logger.info("inductive after rewriting: " + inductive);
                 FuncDecl rdcdInv = origProblem.rdcdRequests.get(key);
                 Expr[] rdcdVars = origProblem.requestUsedArgs.get(key);
                 DefinedFunc df = new DefinedFunc(ctx, key, vars, rdcdInv.apply(rdcdVars));
-                inductive = (BoolExpr)df.rewrite(inductive, inv);
+                inductive = (BoolExpr) df.rewrite(inductive, inv);
                 // logger.info("inductive with rdcd inv: " + inductive);
                 if (invConstr.size() > 1) {
                     newFinal = ctx.mkAnd(newFinal, inductive);
@@ -815,7 +823,7 @@ public class SygusDispatcher {
                 }
             }
         }
-        return (BoolExpr)newFinal;
+        return (BoolExpr) newFinal;
     }
 
     public boolean checkTmplt() throws Exception {
@@ -837,13 +845,13 @@ public class SygusDispatcher {
         Solver solver = z3ctx.mkSolver();
         Expr spec = problem.finalConstraint;
         for (String name : problem.candidate.keySet()) {
-			FuncDecl f = problem.rdcdRequests.get(name);
-			Expr[] args = problem.requestUsedArgs.get(name);
-			DefinedFunc df = problem.candidate.get(name).replaceArgs(args);
-			spec = df.rewrite(spec, f);
+            FuncDecl f = problem.rdcdRequests.get(name);
+            Expr[] args = problem.requestUsedArgs.get(name);
+            DefinedFunc df = problem.candidate.get(name).replaceArgs(args);
+            spec = df.rewrite(spec, f);
         }
         solver.push();
-        solver.add(z3ctx.mkNot((BoolExpr)spec));
+        solver.add(z3ctx.mkNot((BoolExpr) spec));
         Status status = solver.check();
         solver.pop();
         return status == Status.UNSATISFIABLE;
@@ -857,11 +865,11 @@ public class SygusDispatcher {
         }
         boolean flag = false;
         List<BoolExpr> remainingConstrs = new ArrayList<BoolExpr>();
-        for (Expr constr: problem.constraints) {
+        for (Expr constr : problem.constraints) {
             if (isCommConstr(constr)) {
                 flag = true;
             } else {
-                remainingConstrs.add((BoolExpr)constr);
+                remainingConstrs.add((BoolExpr) constr);
             }
         }
         if (!flag) {
@@ -873,7 +881,7 @@ public class SygusDispatcher {
         return isSSI(spec);
     }
 
-    boolean checkSSI(){
+    boolean checkSSI() {
         if (problem.problemType != SygusProblem.ProbType.CLIA) {
             return false;
         }
@@ -901,7 +909,7 @@ public class SygusDispatcher {
         Expr arg1 = left.getArgs()[0];
         Expr arg2 = left.getArgs()[1];
         if (!(arg1.equals(right.getArgs()[1]) &&
-              arg2.equals(right.getArgs()[0]))) {
+                arg2.equals(right.getArgs()[0]))) {
             return false;
         }
         return true;
@@ -914,7 +922,7 @@ public class SygusDispatcher {
             FuncDecl exprFunc = expr.getFuncDecl();
             String funcName = exprFunc.getName().toString();
             if (problem.names.contains(funcName) &&
-                exprFunc.equals(problem.rdcdRequests.get(funcName)))  {
+                    exprFunc.equals(problem.rdcdRequests.get(funcName))) {
                 // For SSI, one atomic expression should have only one particular function
                 if (funcCalled.contains(funcName)) {
                     return false;
@@ -931,11 +939,11 @@ public class SygusDispatcher {
                 }
                 funcCalled.add(funcName);
             }
-            for (Expr arg: args) {
+            for (Expr arg : args) {
                 result = result && isSSI(arg);
             }
             // After atomic expression evalutation, reset the funcCalled set
-            if (expr.isGE() || expr.isLT()|| expr.isGT() || expr.isLE() || expr.isEq()) {
+            if (expr.isGE() || expr.isLT() || expr.isGT() || expr.isLE() || expr.isEq()) {
                 funcCalled.clear();
             }
         }
@@ -952,11 +960,11 @@ public class SygusDispatcher {
     }
 
     boolean checkINVSquarePost() {
-    	// Check if every function 
-    	// \exists x. post /\ \exists y. post => post
-    	logger.info("Checking if the post conditions are squares.");
-    	for (String name : extractor.invConstraints.keySet()) {
-        	// actually there is only one invariant to synthesize
+        // Check if every function
+        // \exists x. post /\ \exists y. post => post
+        logger.info("Checking if the post conditions are squares.");
+        for (String name : extractor.invConstraints.keySet()) {
+            // actually there is only one invariant to synthesize
             Set<Set<Expr>> relation = extractor.varsRelation.get(name);
             logger.info("Num of classes: " + relation.size());
             if (relation.size() <= 1) {
@@ -969,7 +977,7 @@ public class SygusDispatcher {
             Expr trans = extractor.invConstraints.get(name)[1].getDef();
             Expr post = extractor.invConstraints.get(name)[2].getDef();
 
-            for(Set<Expr> exprset : relation) {
+            for (Set<Expr> exprset : relation) {
                 Set<Expr> otherset = new HashSet<Expr>();
                 for (Expr e : extractor.requestArgs.get(name)) {
                     otherset.add(e);
@@ -980,10 +988,10 @@ public class SygusDispatcher {
                 Expr[] otherargs = otherset.toArray(new Expr[otherset.size()]);
                 Solver solver = z3ctx.mkSolver();
                 Quantifier withArg = z3ctx.mkExists(
-                    args, post, 0, new Pattern[] {}, new Expr[] {}, z3ctx.mkSymbol(""), z3ctx.mkSymbol(""));
+                        args, post, 0, new Pattern[]{}, new Expr[]{}, z3ctx.mkSymbol(""), z3ctx.mkSymbol(""));
                 Quantifier withoutArg = z3ctx.mkExists(
-                    otherargs, post, 0, new Pattern[] {}, new Expr[] {}, z3ctx.mkSymbol(""), z3ctx.mkSymbol(""));
-                BoolExpr constraint = z3ctx.mkImplies(z3ctx.mkAnd(withArg, withoutArg), (BoolExpr)post);
+                        otherargs, post, 0, new Pattern[]{}, new Expr[]{}, z3ctx.mkSymbol(""), z3ctx.mkSymbol(""));
+                BoolExpr constraint = z3ctx.mkImplies(z3ctx.mkAnd(withArg, withoutArg), (BoolExpr) post);
                 solver.add(z3ctx.mkNot(constraint));
                 Status status = solver.check();
                 if (status != Status.UNSATISFIABLE) {
@@ -1008,10 +1016,10 @@ public class SygusDispatcher {
                 System.arraycopy(otherargs, 0, otherargswprime, 0, otherargs.length);
                 System.arraycopy(primedOtherargs, 0, otherargswprime, otherargs.length, primedOtherargs.length);
                 withArg = z3ctx.mkExists(
-                    argswprime, trans, 0, new Pattern[] {}, new Expr[] {}, z3ctx.mkSymbol(""), z3ctx.mkSymbol(""));
+                        argswprime, trans, 0, new Pattern[]{}, new Expr[]{}, z3ctx.mkSymbol(""), z3ctx.mkSymbol(""));
                 withoutArg = z3ctx.mkExists(
-                    otherargswprime, trans, 0, new Pattern[] {}, new Expr[] {}, z3ctx.mkSymbol(""), z3ctx.mkSymbol(""));
-                constraint = z3ctx.mkImplies(z3ctx.mkAnd(withArg, withoutArg), (BoolExpr)trans);
+                        otherargswprime, trans, 0, new Pattern[]{}, new Expr[]{}, z3ctx.mkSymbol(""), z3ctx.mkSymbol(""));
+                constraint = z3ctx.mkImplies(z3ctx.mkAnd(withArg, withoutArg), (BoolExpr) trans);
                 solver.reset();
                 solver.add(z3ctx.mkNot(constraint));
                 status = solver.check();
@@ -1024,11 +1032,11 @@ public class SygusDispatcher {
     }
 
     boolean checkINVCrossPre() {
-    	// Check if every function 
-    	// check if pre => \forall x. pre \/ \forall y. pre
-    	logger.info("Checking if the pre conditions are crosses.");
-    	for (String name : extractor.invConstraints.keySet()) {
-        	// actually there is only one invariant to synthesize
+        // Check if every function
+        // check if pre => \forall x. pre \/ \forall y. pre
+        logger.info("Checking if the pre conditions are crosses.");
+        for (String name : extractor.invConstraints.keySet()) {
+            // actually there is only one invariant to synthesize
             Set<Set<Expr>> relation = extractor.varsRelation.get(name);
             logger.info("Num of classes: " + relation.size());
             if (relation.size() <= 1) {
@@ -1038,7 +1046,7 @@ public class SygusDispatcher {
             Expr pre = extractor.invConstraints.get(name)[0].getDef();
             Expr trans = extractor.invConstraints.get(name)[1].getDef();
 
-            for(Set<Expr> exprset : relation) {
+            for (Set<Expr> exprset : relation) {
                 Set<Expr> otherset = new HashSet<Expr>();
                 for (Expr e : extractor.requestArgs.get(name)) {
                     otherset.add(e);
@@ -1049,10 +1057,10 @@ public class SygusDispatcher {
                 Expr[] otherargs = otherset.toArray(new Expr[otherset.size()]);
                 Solver solver = z3ctx.mkSolver();
                 Quantifier withArg = z3ctx.mkForall(
-                    args, pre, 0, new Pattern[] {}, new Expr[] {}, z3ctx.mkSymbol(""), z3ctx.mkSymbol(""));
+                        args, pre, 0, new Pattern[]{}, new Expr[]{}, z3ctx.mkSymbol(""), z3ctx.mkSymbol(""));
                 Quantifier withoutArg = z3ctx.mkForall(
-                    otherargs, pre, 0, new Pattern[] {}, new Expr[] {}, z3ctx.mkSymbol(""), z3ctx.mkSymbol(""));
-                BoolExpr constraint = z3ctx.mkImplies((BoolExpr)pre, z3ctx.mkOr(withArg, withoutArg));
+                        otherargs, pre, 0, new Pattern[]{}, new Expr[]{}, z3ctx.mkSymbol(""), z3ctx.mkSymbol(""));
+                BoolExpr constraint = z3ctx.mkImplies((BoolExpr) pre, z3ctx.mkOr(withArg, withoutArg));
                 solver.add(z3ctx.mkNot(constraint));
                 Status status = solver.check();
                 if (status != Status.UNSATISFIABLE) {
@@ -1077,10 +1085,10 @@ public class SygusDispatcher {
                 System.arraycopy(otherargs, 0, otherargswprime, 0, otherargs.length);
                 System.arraycopy(primedOtherargs, 0, otherargswprime, otherargs.length, primedOtherargs.length);
                 withArg = z3ctx.mkForall(
-                    argswprime, trans, 0, new Pattern[] {}, new Expr[] {}, z3ctx.mkSymbol(""), z3ctx.mkSymbol(""));
+                        argswprime, trans, 0, new Pattern[]{}, new Expr[]{}, z3ctx.mkSymbol(""), z3ctx.mkSymbol(""));
                 withoutArg = z3ctx.mkForall(
-                    otherargswprime, trans, 0, new Pattern[] {}, new Expr[] {}, z3ctx.mkSymbol(""), z3ctx.mkSymbol(""));
-                constraint = z3ctx.mkImplies((BoolExpr)trans, z3ctx.mkAnd(withArg, withoutArg));
+                        otherargswprime, trans, 0, new Pattern[]{}, new Expr[]{}, z3ctx.mkSymbol(""), z3ctx.mkSymbol(""));
+                constraint = z3ctx.mkImplies((BoolExpr) trans, z3ctx.mkAnd(withArg, withoutArg));
                 solver.reset();
                 solver.add(z3ctx.mkNot(constraint));
                 status = solver.check();
@@ -1108,7 +1116,7 @@ public class SygusDispatcher {
             Expr trans = extractor.invConstraints.get(name)[1].getDef();
             Expr post = extractor.invConstraints.get(name)[2].getDef();
 
-            for(Set<Expr> exprset : relation) {
+            for (Set<Expr> exprset : relation) {
                 Set<Expr> otherset = new HashSet<Expr>();
                 for (Expr e : extractor.requestArgs.get(name)) {
                     otherset.add(e);
@@ -1119,10 +1127,10 @@ public class SygusDispatcher {
                 Expr[] otherargs = otherset.toArray(new Expr[otherset.size()]);
                 Solver solver = z3ctx.mkSolver();
                 Quantifier withArg = z3ctx.mkExists(
-                    args, pre, 0, new Pattern[] {}, new Expr[] {}, z3ctx.mkSymbol(""), z3ctx.mkSymbol(""));
+                        args, pre, 0, new Pattern[]{}, new Expr[]{}, z3ctx.mkSymbol(""), z3ctx.mkSymbol(""));
                 Quantifier withoutArg = z3ctx.mkExists(
-                    otherargs, pre, 0, new Pattern[] {}, new Expr[] {}, z3ctx.mkSymbol(""), z3ctx.mkSymbol(""));
-                BoolExpr constraint = z3ctx.mkImplies(z3ctx.mkAnd(withArg, withoutArg), (BoolExpr)pre);
+                        otherargs, pre, 0, new Pattern[]{}, new Expr[]{}, z3ctx.mkSymbol(""), z3ctx.mkSymbol(""));
+                BoolExpr constraint = z3ctx.mkImplies(z3ctx.mkAnd(withArg, withoutArg), (BoolExpr) pre);
                 solver.add(z3ctx.mkNot(constraint));
                 Status status = solver.check();
                 if (status != Status.UNSATISFIABLE) {
@@ -1132,10 +1140,10 @@ public class SygusDispatcher {
 
                 // check post
                 withArg = z3ctx.mkForall(
-                    args, post, 0, new Pattern[] {}, new Expr[] {}, z3ctx.mkSymbol(""), z3ctx.mkSymbol(""));
+                        args, post, 0, new Pattern[]{}, new Expr[]{}, z3ctx.mkSymbol(""), z3ctx.mkSymbol(""));
                 withoutArg = z3ctx.mkForall(
-                    otherargs, post, 0, new Pattern[] {}, new Expr[] {}, z3ctx.mkSymbol(""), z3ctx.mkSymbol(""));
-                constraint = z3ctx.mkImplies((BoolExpr)post, z3ctx.mkOr(withArg, withoutArg));
+                        otherargs, post, 0, new Pattern[]{}, new Expr[]{}, z3ctx.mkSymbol(""), z3ctx.mkSymbol(""));
+                constraint = z3ctx.mkImplies((BoolExpr) post, z3ctx.mkOr(withArg, withoutArg));
                 solver.reset();
                 solver.add(z3ctx.mkNot(constraint));
                 status = solver.check();
@@ -1156,14 +1164,14 @@ public class SygusDispatcher {
             return false;
         }
         if (this.checkINVSquarePost()) {
-        	logger.info("Rectangle post");
-        	this.dnctype = DnCType.RECPOST;
-        	return true;
+            logger.info("Rectangle post");
+            this.dnctype = DnCType.RECPOST;
+            return true;
         }
         if (this.checkINVCrossPre()) {
-        	logger.info("Cross pre");
-        	this.dnctype = DnCType.CROSSPRE;
-        	return true;
+            logger.info("Cross pre");
+            this.dnctype = DnCType.CROSSPRE;
+            return true;
         }
         if (this.checkINVRecCross()) {
             logger.info("Rectangle pre & Cross post");
@@ -1182,7 +1190,7 @@ public class SygusDispatcher {
             return false;
         }
         FuncDecl target = problem.requests.get(problem.names.get(0));
-        if (problem.constraints.size() > 1){
+        if (problem.constraints.size() > 1) {
             return false;
         }
         BoolExpr spec = problem.constraints.get(0);
@@ -1222,7 +1230,7 @@ public class SygusDispatcher {
             String funcName = decl.getName().toString();
             if (OpDispatcher.internalOps.contains(funcName) || problem.funcs.containsKey(funcName)) {
                 boolean result = true;
-                for (int i = 0; i < expr.getNumArgs(); i++){
+                for (int i = 0; i < expr.getNumArgs(); i++) {
                     result = result && isConcrete(expr.getArgs()[i]);
                 }
                 return result;
@@ -1267,12 +1275,12 @@ public class SygusDispatcher {
         boolean containsLt = false;
         boolean containsGt = false;
 
-        Map<String, List<String[]>>  grammarRules = cfg.grammarRules;
+        Map<String, List<String[]>> grammarRules = cfg.grammarRules;
         Map<String, Sort> grammarSybSort = cfg.grammarSybSort;
 
-        if (grammarSybSort.size() != 2 || 
-            !(grammarSybSort.containsValue(z3ctx.getIntSort()) 
-                && grammarSybSort.containsValue(z3ctx.getBoolSort()))) {
+        if (grammarSybSort.size() != 2 ||
+                !(grammarSybSort.containsValue(z3ctx.getIntSort())
+                        && grammarSybSort.containsValue(z3ctx.getBoolSort()))) {
             return false;
         }
 
@@ -1358,7 +1366,7 @@ public class SygusDispatcher {
         }
 
         if (containsArgs && containtsZero && containsOne && containsAdd && containsMinus && containsITE
-            && containsAnd && containsOr && containsNot && containsLe && containsEq && containsGe) {
+                && containsAnd && containsOr && containsNot && containsLe && containsEq && containsGe) {
             return true;
         }
 
@@ -1388,11 +1396,11 @@ public class SygusDispatcher {
         boolean containsAdd = false;
         boolean containsMinus = false;
 
-        Map<String, List<String[]>>  grammarRules = cfg.grammarRules;
+        Map<String, List<String[]>> grammarRules = cfg.grammarRules;
         Map<String, Sort> grammarSybSort = cfg.grammarSybSort;
 
-        if (grammarSybSort.size() != 1 || 
-            !(grammarSybSort.containsValue(z3ctx.getIntSort()))) {
+        if (grammarSybSort.size() != 1 ||
+                !(grammarSybSort.containsValue(z3ctx.getIntSort()))) {
             coeffRange.put(funcname, CoeffRange.NONE);
             return false;
         }
@@ -1474,12 +1482,12 @@ public class SygusDispatcher {
         boolean containsLt = false;
         boolean containsGt = false;
 
-        Map<String, List<String[]>>  grammarRules = cfg.grammarRules;
+        Map<String, List<String[]>> grammarRules = cfg.grammarRules;
         Map<String, Sort> grammarSybSort = cfg.grammarSybSort;
 
-        if (grammarSybSort.size() != 2 || 
-            !(grammarSybSort.containsValue(z3ctx.getIntSort()) 
-                && grammarSybSort.containsValue(z3ctx.getBoolSort()))) {
+        if (grammarSybSort.size() != 2 ||
+                !(grammarSybSort.containsValue(z3ctx.getIntSort())
+                        && grammarSybSort.containsValue(z3ctx.getBoolSort()))) {
             return false;
         }
 
@@ -1565,8 +1573,8 @@ public class SygusDispatcher {
         }
 
         if (containsArgs && containtsZero && containsOne && containsAdd && !containsMinus && containsITE
-            && !containsAnd && !containsOr && !containsNot  && !containsEq
-            && containsLe && containsGe && containsLt && containsGt) {
+                && !containsAnd && !containsOr && !containsNot && !containsEq
+                && containsLe && containsGe && containsLt && containsGt) {
             return true;
         }
 
@@ -1610,12 +1618,12 @@ public class SygusDispatcher {
         boolean containsLt = false;
         boolean containsGt = false;
 
-        Map<String, List<String[]>>  grammarRules = cfg.grammarRules;
+        Map<String, List<String[]>> grammarRules = cfg.grammarRules;
         Map<String, Sort> grammarSybSort = cfg.grammarSybSort;
 
-        if (grammarSybSort.size() != 2 || 
-            !(grammarSybSort.containsValue(z3ctx.getIntSort()) 
-                && grammarSybSort.containsValue(z3ctx.getBoolSort()))) {
+        if (grammarSybSort.size() != 2 ||
+                !(grammarSybSort.containsValue(z3ctx.getIntSort())
+                        && grammarSybSort.containsValue(z3ctx.getBoolSort()))) {
             return false;
         }
 
@@ -1701,8 +1709,8 @@ public class SygusDispatcher {
         }
 
         if (containsArgs && containtsZero && containsOne && !containsAdd && !containsMinus && containsITE
-            && !containsAnd && !containsOr && !containsNot  && !containsEq
-            && containsLe && containsGe && containsLt && containsGt) {
+                && !containsAnd && !containsOr && !containsNot && !containsEq
+                && containsLe && containsGe && containsLt && containsGt) {
             return true;
         }
 
@@ -1725,11 +1733,11 @@ public class SygusDispatcher {
     }
 
     boolean isConstantInt(String funcname, SygusProblem.CFG cfg) {
-        Map<String, List<String[]>>  grammarRules = cfg.grammarRules;
+        Map<String, List<String[]>> grammarRules = cfg.grammarRules;
         Map<String, Sort> grammarSybSort = cfg.grammarSybSort;
 
-        if (grammarSybSort.size() != 1 || 
-            !grammarSybSort.containsValue(z3ctx.getIntSort())) {
+        if (grammarSybSort.size() != 1 ||
+                !grammarSybSort.containsValue(z3ctx.getIntSort())) {
             return false;
         }
         if (grammarRules.size() != 1) {
@@ -1776,12 +1784,12 @@ public class SygusDispatcher {
         boolean containsEq = false;
         boolean containsGe = false;
 
-        Map<String, List<String[]>>  grammarRules = cfg.grammarRules;
+        Map<String, List<String[]>> grammarRules = cfg.grammarRules;
         Map<String, Sort> grammarSybSort = cfg.grammarSybSort;
 
-        if (grammarSybSort.size() != 2 || 
-            !(grammarSybSort.containsValue(z3ctx.getIntSort()) 
-                && grammarSybSort.containsValue(z3ctx.getBoolSort()))) {
+        if (grammarSybSort.size() != 2 ||
+                !(grammarSybSort.containsValue(z3ctx.getIntSort())
+                        && grammarSybSort.containsValue(z3ctx.getBoolSort()))) {
             return false;
         }
 
@@ -1799,7 +1807,7 @@ public class SygusDispatcher {
         }
 
         List<String> tens = new ArrayList<String>();
-        for (int i = 0; i < 101; i+=10) {
+        for (int i = 0; i < 101; i += 10) {
             tens.add(Integer.toString(i));
         }
         List<String[]> intRuleLists = grammarRules.get(intName);
@@ -1860,7 +1868,7 @@ public class SygusDispatcher {
 
     boolean containsInputArgs(String funcname, SygusProblem.CFG cfg) {
         boolean result = true;
-        Map<String, List<String[]>>  grammarRules = cfg.grammarRules;
+        Map<String, List<String[]>> grammarRules = cfg.grammarRules;
         Expr[] args = problem.requestArgs.get(funcname);
 
         for (Expr arg : args) {
@@ -1889,7 +1897,7 @@ public class SygusDispatcher {
 
         boolean visited;
         Expr expr, newExpr, body;
-        Expr [] args, newArgsArray;
+        Expr[] args, newArgsArray;
         List<Expr> newArgs = new ArrayList<Expr>();
         FuncDecl exprFunc;
         while (!todo.empty()) {
@@ -1901,7 +1909,7 @@ public class SygusDispatcher {
                 visited = true;
                 newArgs.clear();
                 args = expr.getArgs();
-                for (Expr arg: args) {
+                for (Expr arg : args) {
                     if (!cache.containsKey(arg)) {
                         todo.push(arg);
                         visited = false;
@@ -1920,7 +1928,7 @@ public class SygusDispatcher {
                                 int num = Integer.parseInt(newArgsArray[i].toString());
                                 newArgsArray[i] = z3ctx.mkInt(num * 10);
                             } else {
-                                newArgsArray[i] = z3ctx.mkMul((ArithExpr)newArgsArray[i], z3ctx.mkInt(10));
+                                newArgsArray[i] = z3ctx.mkMul((ArithExpr) newArgsArray[i], z3ctx.mkInt(10));
                             }
                             // System.out.println("EQ expr: " + expr.toString() + ". New arg: " + newArgsArray[i].toString());
                         }
@@ -1930,11 +1938,11 @@ public class SygusDispatcher {
                     }
                     cache.put(expr, newExpr);
                 }
-            } else if(expr.isQuantifier()) {
-                body = ((Quantifier)expr).getBody();
+            } else if (expr.isQuantifier()) {
+                body = ((Quantifier) expr).getBody();
                 if (cache.containsKey(body)) {
                     todo.pop();
-                    newExpr = expr.update(new Expr[]{ cache.get(body) });
+                    newExpr = expr.update(new Expr[]{cache.get(body)});
                     cache.put(expr, newExpr);
                 } else {
                     todo.push(body);
@@ -1964,8 +1972,8 @@ public class SygusDispatcher {
                 Expr plus = z3ctx.mkInt(1);
                 String plusstr = "1";
                 for (int j = 1; j < num; j++) {
-                    plus = z3ctx.mkAdd((ArithExpr)plus, z3ctx.mkInt(1));
-                    plusstr =  "(+ " + plusstr + " 1)";
+                    plus = z3ctx.mkAdd((ArithExpr) plus, z3ctx.mkInt(1));
+                    plusstr = "(+ " + plusstr + " 1)";
                 }
                 conststr = plusstr;
             }
@@ -1976,8 +1984,8 @@ public class SygusDispatcher {
                     minusstr = "(- " + arg0.toString() + " " + arg0.toString() + ")";
                 }
                 for (int j = 0; j < (0 - num); j++) {
-                    minus = z3ctx.mkSub((ArithExpr)minus, z3ctx.mkInt(1));
-                    minusstr =  "(- " + minusstr + " 1)";
+                    minus = z3ctx.mkSub((ArithExpr) minus, z3ctx.mkInt(1));
+                    minusstr = "(- " + minusstr + " 1)";
                 }
                 conststr = minusstr;
             }
@@ -2000,7 +2008,7 @@ public class SygusDispatcher {
                 Expr and = newArgs[0];
                 String andstr = cache.get(args[0]);
                 for (int i = 1; i < args.length; i++) {
-                    and = z3ctx.mkAnd((BoolExpr)and, (BoolExpr)newArgs[i]);
+                    and = z3ctx.mkAnd((BoolExpr) and, (BoolExpr) newArgs[i]);
                     andstr = "(and " + andstr + " " + cache.get(args[i]) + ")";
                 }
                 cache.put(expr, andstr);
@@ -2011,7 +2019,7 @@ public class SygusDispatcher {
                 Expr or = newArgs[0];
                 String orstr = cache.get(args[0]);
                 for (int i = 1; i < args.length; i++) {
-                    or = z3ctx.mkOr((BoolExpr)or, (BoolExpr)newArgs[i]);
+                    or = z3ctx.mkOr((BoolExpr) or, (BoolExpr) newArgs[i]);
                     orstr = "(or " + orstr + " " + cache.get(args[i]) + ")";
                 }
                 cache.put(expr, orstr);
@@ -2020,7 +2028,7 @@ public class SygusDispatcher {
             if (expr.isNot()) {
                 String notstr = "(not " + cache.get(args[0]) + ")";
                 cache.put(expr, notstr);
-                return z3ctx.mkNot((BoolExpr)newArgs[0]);
+                return z3ctx.mkNot((BoolExpr) newArgs[0]);
             }
             if (expr.isMul()) {
                 // since CLIA, one arg is int number, the other one is variable
@@ -2045,7 +2053,7 @@ public class SygusDispatcher {
                     Expr add = arg;
                     String addstr = cache.get(arg);
                     for (int i = 1; i < num; i++) {
-                        add = z3ctx.mkAdd((ArithExpr)add, (ArithExpr)arg);
+                        add = z3ctx.mkAdd((ArithExpr) add, (ArithExpr) arg);
                         addstr = "(+ " + addstr + " " + cache.get(arg) + ")";
                     }
                     cache.put(expr, addstr);
@@ -2056,9 +2064,9 @@ public class SygusDispatcher {
                     String substr = "0";
                     if (this.converted == ConvertMethod.ADDSUB) {
                         substr = "(- " + arg0.toString() + " " + arg0.toString() + ")";
-                    } 
+                    }
                     for (int i = 0; i < (0 - num); i++) {
-                        sub = z3ctx.mkSub((ArithExpr)sub, (ArithExpr)arg);
+                        sub = z3ctx.mkSub((ArithExpr) sub, (ArithExpr) arg);
                         substr = "(- " + substr + " " + cache.get(arg) + ")";
                     }
                     cache.put(expr, substr);
@@ -2069,7 +2077,7 @@ public class SygusDispatcher {
                 Expr add = newArgs[0];
                 String addstr = cache.get(args[0]);
                 for (int i = 1; i < args.length; i++) {
-                    add = z3ctx.mkAdd((ArithExpr)add, (ArithExpr)newArgs[i]);
+                    add = z3ctx.mkAdd((ArithExpr) add, (ArithExpr) newArgs[i]);
                     addstr = "(+ " + addstr + " " + cache.get(args[i]) + ")";
                     // logger.info("add arg: " + cache.get(args[i]));
                 }
@@ -2080,7 +2088,7 @@ public class SygusDispatcher {
                 Expr sub = newArgs[0];
                 String substr = cache.get(args[0]);
                 for (int i = 1; i < args.length; i++) {
-                    sub = z3ctx.mkSub((ArithExpr)sub, (ArithExpr)newArgs[i]);
+                    sub = z3ctx.mkSub((ArithExpr) sub, (ArithExpr) newArgs[i]);
                     substr = "(- " + substr + " " + cache.get(args[i]) + ")";
                 }
                 cache.put(expr, substr);
@@ -2089,27 +2097,27 @@ public class SygusDispatcher {
             if (expr.isITE()) {
                 String itestr = "(ite " + cache.get(args[0]) + " " + cache.get(args[1]) + " " + cache.get(args[2]) + ")";
                 cache.put(expr, itestr);
-                return z3ctx.mkITE((BoolExpr)newArgs[0], newArgs[1], newArgs[2]);
+                return z3ctx.mkITE((BoolExpr) newArgs[0], newArgs[1], newArgs[2]);
             }
             if (expr.isGE()) {
                 String gestr = "(>= " + cache.get(args[0]) + " " + cache.get(args[1]) + ")";
                 cache.put(expr, gestr);
-                return z3ctx.mkGe((ArithExpr)newArgs[0], (ArithExpr)newArgs[1]);
+                return z3ctx.mkGe((ArithExpr) newArgs[0], (ArithExpr) newArgs[1]);
             }
             if (expr.isLE()) {
                 String lestr = "(<= " + cache.get(args[0]) + " " + cache.get(args[1]) + ")";
                 cache.put(expr, lestr);
-                return z3ctx.mkLe((ArithExpr)newArgs[0], (ArithExpr)newArgs[1]);
+                return z3ctx.mkLe((ArithExpr) newArgs[0], (ArithExpr) newArgs[1]);
             }
             if (expr.isGT()) {
                 String gestr = "(> " + cache.get(args[0]) + " " + cache.get(args[1]) + ")";
                 cache.put(expr, gestr);
-                return z3ctx.mkGt((ArithExpr)newArgs[0], (ArithExpr)newArgs[1]);
+                return z3ctx.mkGt((ArithExpr) newArgs[0], (ArithExpr) newArgs[1]);
             }
             if (expr.isLT()) {
                 String lestr = "(< " + cache.get(args[0]) + " " + cache.get(args[1]) + ")";
                 cache.put(expr, lestr);
-                return z3ctx.mkLt((ArithExpr)newArgs[0], (ArithExpr)newArgs[1]);
+                return z3ctx.mkLt((ArithExpr) newArgs[0], (ArithExpr) newArgs[1]);
             }
             if (expr.isEq()) {
                 String eqstr = "(= " + cache.get(args[0]) + " " + cache.get(args[1]) + ")";
@@ -2121,91 +2129,87 @@ public class SygusDispatcher {
         logger.info("expr reach the end: " + expr.toString());
         return null;
     }
-    public int getVal(Expr e)
-    {
-    	if(e.isGE()|e.isLT()|e.isLE()|e.isGT())
-    		return 1;
-    	else if(e.isNot())
-    	{
-    		logger.info("WARNING!NOT APPEAR");
-    		return 2;
-    	}
-    	else if(e.isEq())
-    		return 4;
-    	else if(e.isAnd()|e.isOr())
-    		return 2+e.getArgs().length;
-    	else
-    	{
-    		logger.info("ERROR"+e.toString());
-    		return -1;
-    	}
-    }
-    class Mycomp implements Comparator<Expr>{
-    	@Override
-    	public int compare(Expr e1,Expr e2){
-    		return getVal(e2)-getVal(e1);
-    	}
-    }
-    Expr minimizeITE(Expr expr,Solver s){
-    	
-    	Expr[] args = expr.getArgs();
-    	Expr cond = args[0];
-    	s.push();
-    	s.add((BoolExpr)cond);
-    	Status status = s.check();
-    	if(status == Status.UNSATISFIABLE){
-    		s.pop();
-    		
-    		if(args[2].isITE()){
-    			s.push();
-    			s.add((BoolExpr)z3ctx.mkNot((BoolExpr)cond));
-    			Expr retexp = minimizeITE(args[2],s);
-    			s.pop();
-    			return retexp;
-    		}
-    		else
-    			return args[2];
-    	}
-    	s.pop();
 
-    	s.push();
-    	s.add((BoolExpr)z3ctx.mkNot((BoolExpr)cond));
-    	status = s.check();
-    	if(status == Status.UNSATISFIABLE){
-    		s.pop();
-    		
-    		if(args[1].isITE()){
-    			s.push();
-    			s.add((BoolExpr)cond);
-    			Expr retexp = minimizeITE(args[1],s);
-    			s.pop();
-    			return retexp;
-    		}
-    		else
-    			return args[1];
-    	}
-    	s.pop();
-
-    	Expr retexp1,retexp2;
-    	if(args[1].isITE()){
-    		s.push();
-    		s.add((BoolExpr)cond);
-    		retexp1 = minimizeITE(args[1],s);
-    		s.pop();
-    	}
-    	else
-    		retexp1 = args[1];
-
-    	if(args[2].isITE()){
-    		s.push();
-    		s.add((BoolExpr)z3ctx.mkNot((BoolExpr)cond));
-    		retexp2 = minimizeITE(args[2],s);
-    		s.pop();
-    	}
-    	else
-    		retexp2 = args[2];
-    	return z3ctx.mkITE((BoolExpr)cond,retexp1,retexp2);
+    public int getVal(Expr e) {
+        if (e.isGE() | e.isLT() | e.isLE() | e.isGT())
+            return 1;
+        else if (e.isNot()) {
+            logger.info("WARNING!NOT APPEAR");
+            return 2;
+        } else if (e.isEq())
+            return 4;
+        else if (e.isAnd() | e.isOr())
+            return 2 + e.getArgs().length;
+        else {
+            logger.info("ERROR" + e.toString());
+            return -1;
+        }
     }
+
+    class Mycomp implements Comparator<Expr> {
+        @Override
+        public int compare(Expr e1, Expr e2) {
+            return getVal(e2) - getVal(e1);
+        }
+    }
+
+    Expr minimizeITE(Expr expr, Solver s) {
+
+        Expr[] args = expr.getArgs();
+        Expr cond = args[0];
+        s.push();
+        s.add((BoolExpr) cond);
+        Status status = s.check();
+        if (status == Status.UNSATISFIABLE) {
+            s.pop();
+
+            if (args[2].isITE()) {
+                s.push();
+                s.add((BoolExpr) z3ctx.mkNot((BoolExpr) cond));
+                Expr retexp = minimizeITE(args[2], s);
+                s.pop();
+                return retexp;
+            } else
+                return args[2];
+        }
+        s.pop();
+
+        s.push();
+        s.add((BoolExpr) z3ctx.mkNot((BoolExpr) cond));
+        status = s.check();
+        if (status == Status.UNSATISFIABLE) {
+            s.pop();
+
+            if (args[1].isITE()) {
+                s.push();
+                s.add((BoolExpr) cond);
+                Expr retexp = minimizeITE(args[1], s);
+                s.pop();
+                return retexp;
+            } else
+                return args[1];
+        }
+        s.pop();
+
+        Expr retexp1, retexp2;
+        if (args[1].isITE()) {
+            s.push();
+            s.add((BoolExpr) cond);
+            retexp1 = minimizeITE(args[1], s);
+            s.pop();
+        } else
+            retexp1 = args[1];
+
+        if (args[2].isITE()) {
+            s.push();
+            s.add((BoolExpr) z3ctx.mkNot((BoolExpr) cond));
+            retexp2 = minimizeITE(args[2], s);
+            s.pop();
+        } else
+            retexp2 = args[2];
+        return z3ctx.mkITE((BoolExpr) cond, retexp1, retexp2);
+    }
+
     Expr convertToITE(Expr expr) {
         // eliminate and or not in ite's boolean condition
         if (expr.isConst()) {
@@ -2218,16 +2222,16 @@ public class SygusDispatcher {
             Expr inner = expr.getArgs()[0];
             Expr[] innerArgs = inner.getArgs();
             if (inner.isGE()) {
-            	return z3ctx.mkLt((ArithExpr)innerArgs[0], (ArithExpr)innerArgs[1]);
+                return z3ctx.mkLt((ArithExpr) innerArgs[0], (ArithExpr) innerArgs[1]);
             }
             if (inner.isLE()) {
-            	return z3ctx.mkGt((ArithExpr)innerArgs[0], (ArithExpr)innerArgs[1]);
+                return z3ctx.mkGt((ArithExpr) innerArgs[0], (ArithExpr) innerArgs[1]);
             }
             if (inner.isGT()) {
-            	return z3ctx.mkLe((ArithExpr)innerArgs[0], (ArithExpr)innerArgs[1]);
+                return z3ctx.mkLe((ArithExpr) innerArgs[0], (ArithExpr) innerArgs[1]);
             }
             if (inner.isLT()) {
-            	return z3ctx.mkGe((ArithExpr)innerArgs[0], (ArithExpr)innerArgs[1]);
+                return z3ctx.mkGe((ArithExpr) innerArgs[0], (ArithExpr) innerArgs[1]);
             }
             // return null as error message
             return null;
@@ -2242,15 +2246,15 @@ public class SygusDispatcher {
             if (convertedArgs[0].isAnd()) {
                 iteConverted = true;
                 Comparator cmp = new Mycomp();
-                Arrays.sort(innerArgs,cmp);
-                Expr ite = z3ctx.mkITE((BoolExpr)innerArgs[0], convertedArgs[1], convertedArgs[2]);
+                Arrays.sort(innerArgs, cmp);
+                Expr ite = z3ctx.mkITE((BoolExpr) innerArgs[0], convertedArgs[1], convertedArgs[2]);
                 for (int i = 1; i < innerArgs.length; i++) {
-                    ite = z3ctx.mkITE((BoolExpr)innerArgs[i], ite, convertedArgs[2]);
+                    ite = z3ctx.mkITE((BoolExpr) innerArgs[i], ite, convertedArgs[2]);
                 }
-                logger.info("HERE1"+ite.toString());
+                logger.info("HERE1" + ite.toString());
                 Solver s = z3ctx.mkSolver();
-                Expr finalite = minimizeITE(ite,s);
-                logger.info("HERE2"+finalite.toString());
+                Expr finalite = minimizeITE(ite, s);
+                logger.info("HERE2" + finalite.toString());
                 //return ite;
                 return finalite;
             }
@@ -2260,31 +2264,31 @@ public class SygusDispatcher {
                 //     logger.info("beforesort " + innerArgs[i].toString());
                 // }
                 Comparator cmp = new Mycomp();
-                Arrays.sort(innerArgs,cmp);
-                Expr ite = z3ctx.mkITE((BoolExpr)innerArgs[0], convertedArgs[1], convertedArgs[2]);
+                Arrays.sort(innerArgs, cmp);
+                Expr ite = z3ctx.mkITE((BoolExpr) innerArgs[0], convertedArgs[1], convertedArgs[2]);
                 for (int i = 1; i < innerArgs.length; i++) {
                     // logger.info("or in ite: " + i);
-                    ite = z3ctx.mkITE((BoolExpr)innerArgs[i], convertedArgs[1], ite);
+                    ite = z3ctx.mkITE((BoolExpr) innerArgs[i], convertedArgs[1], ite);
                 }
-                logger.info("HERE1"+ite.toString());
+                logger.info("HERE1" + ite.toString());
                 Solver s = z3ctx.mkSolver();
-                Expr finalite = minimizeITE(ite,s);
-                logger.info("HERE2"+finalite.toString());
+                Expr finalite = minimizeITE(ite, s);
+                logger.info("HERE2" + finalite.toString());
                 //return ite;
                 return finalite;
             }
-            return z3ctx.mkITE((BoolExpr)convertedArgs[0], convertedArgs[1], convertedArgs[2]);
+            return z3ctx.mkITE((BoolExpr) convertedArgs[0], convertedArgs[1], convertedArgs[2]);
         }
         if (expr.isAnd()) {
             List<Expr> argList = new ArrayList<Expr>();
-            for (Expr e: expr.getArgs()) {
+            for (Expr e : expr.getArgs()) {
                 argList.add(convertToITE(e));
             }
             return z3ctx.mkAnd(argList.toArray(new BoolExpr[argList.size()]));
         }
         if (expr.isOr()) {
             List<Expr> argList = new ArrayList<Expr>();
-            for (Expr e: expr.getArgs()) {
+            for (Expr e : expr.getArgs()) {
                 argList.add(convertToITE(e));
             }
             return z3ctx.mkOr(argList.toArray(new BoolExpr[argList.size()]));
@@ -2319,7 +2323,7 @@ public class SygusDispatcher {
             Expr[] args = expr.getArgs();
             Expr arg0 = args[0];
             Expr arg1 = args[1];
-            return z3ctx.mkAnd(z3ctx.mkGe((ArithExpr)arg0, (ArithExpr)arg1), z3ctx.mkLe((ArithExpr)arg0, (ArithExpr)arg1));
+            return z3ctx.mkAnd(z3ctx.mkGe((ArithExpr) arg0, (ArithExpr) arg1), z3ctx.mkLe((ArithExpr) arg0, (ArithExpr) arg1));
         }
         // return null as error message
         logger.info("expr reach the end: " + expr.toString());

@@ -1,4 +1,5 @@
 import java.util.*;
+
 import com.microsoft.z3.*;
 
 public class Transf {
@@ -16,12 +17,12 @@ public class Transf {
 
         public Expr toExpr(Transf t) {
             List<Expr> exprs = new ArrayList<Expr>();
-            for (Expr e: deltaTbl.keySet()) {
+            for (Expr e : deltaTbl.keySet()) {
                 exprs.add(z3ctx.mkEq(
-                            t.prime(e),
-                            z3ctx.mkAdd((ArithExpr)e,
+                        t.prime(e),
+                        z3ctx.mkAdd((ArithExpr) e,
                                 z3ctx.mkInt(deltaTbl.get(e)))
-                            ));
+                ));
             }
             return z3ctx.mkAnd(exprs.toArray(new BoolExpr[exprs.size()]));
 
@@ -41,7 +42,7 @@ public class Transf {
     public Expr toExpr() {
         List<Expr> clauses = new ArrayList<Expr>();
         for (Region r : transMap.keySet()) {
-            clauses.add(z3ctx.mkAnd((BoolExpr)r.toExpr(), (BoolExpr)transMap.get(r).toExpr(this)));
+            clauses.add(z3ctx.mkAnd((BoolExpr) r.toExpr(), (BoolExpr) transMap.get(r).toExpr(this)));
         }
         return z3ctx.mkOr(clauses.toArray(new BoolExpr[clauses.size()]));
     }
@@ -73,11 +74,11 @@ public class Transf {
         }
         this.rc = z3ctx.mkNot(z3ctx.mkOr(clauses.toArray(new BoolExpr[clauses.size()])));
         Solver s = z3ctx.mkSolver();
-        s.add((BoolExpr)this.rc);
+        s.add((BoolExpr) this.rc);
         Status result = s.check();
         if (result == Status.SATISFIABLE) {
             Goal g = z3ctx.mkGoal(false, false, false);
-            g.add((BoolExpr)this.rc);
+            g.add((BoolExpr) this.rc);
             this.rc = simp.apply(g).getSubgoals()[0].AsBoolExpr();
         } else {
             this.rc = null;
@@ -99,7 +100,7 @@ public class Transf {
                     z3ctx.mkTactic("simplify"),
                     z3ctx.mkTactic("ctx-simplify"),
                     z3ctx.mkTactic("ctx-solver-simplify")
-                    ), 8);
+            ), 8);
         } else {
             this.simp = z3ctx.skip();
         }
@@ -112,28 +113,28 @@ public class Transf {
             List<Expr> conj = new ArrayList<Expr>();
             conj.add(r.toKExpr(k));
             Expr substInput = input;
-            for (Expr var: transMap.get(r).deltaTbl.keySet()) {
+            for (Expr var : transMap.get(r).deltaTbl.keySet()) {
                 substInput = substInput.substitute(var,
-                        z3ctx.mkSub((ArithExpr)var,
-                            z3ctx.mkMul((ArithExpr)k,
-                                z3ctx.mkInt(transMap.get(r).deltaTbl.get(var))))
-                        );
+                        z3ctx.mkSub((ArithExpr) var,
+                                z3ctx.mkMul((ArithExpr) k,
+                                        z3ctx.mkInt(transMap.get(r).deltaTbl.get(var))))
+                );
             }
             conj.add(substInput);
-            conj.add(z3ctx.mkGe((ArithExpr)k, z3ctx.mkInt(0)));
+            conj.add(z3ctx.mkGe((ArithExpr) k, z3ctx.mkInt(0)));
             clauses.add(z3ctx.mkAnd(conj.toArray(new BoolExpr[conj.size()])));
         }
         Quantifier q = z3ctx.mkExists(
-                new Expr[] {k},
+                new Expr[]{k},
                 z3ctx.mkOr(clauses.toArray(new BoolExpr[clauses.size()])),
                 0,
-                new Pattern[] {},
-                new Expr[] {},
+                new Pattern[]{},
+                new Expr[]{},
                 z3ctx.mkSymbol(""),
                 z3ctx.mkSymbol("")
-                );
+        );
         Goal g = z3ctx.mkGoal(false, false, false);
-        g.add(z3ctx.mkOr(q, (BoolExpr)input));
+        g.add(z3ctx.mkOr(q, (BoolExpr) input));
         g = z3ctx.then(qe, simp).apply(g).getSubgoals()[0];
         return g.AsBoolExpr();
     }
@@ -141,7 +142,7 @@ public class Transf {
     public Expr switchExpand(Expr input) {
         List<Expr> clauses = new ArrayList<Expr>();
         for (Region r1 : transMap.keySet()) {
-            for (Region r2: transMap.keySet()) {
+            for (Region r2 : transMap.keySet()) {
                 if (r1 == r2) {
                     continue;
                 }
@@ -149,38 +150,38 @@ public class Transf {
                 Expr dest = r2.toExpr();
                 Expr substInput = input;
                 Map<Expr, Integer> tbl = transMap.get(r1).deltaTbl;
-                for (Expr var: tbl.keySet()) {
+                for (Expr var : tbl.keySet()) {
                     orig = orig.substitute(var,
-                            z3ctx.mkSub((ArithExpr)var, z3ctx.mkInt(tbl.get(var)))
-                            );
+                            z3ctx.mkSub((ArithExpr) var, z3ctx.mkInt(tbl.get(var)))
+                    );
                     substInput = substInput.substitute(var,
-                            z3ctx.mkSub((ArithExpr)var, z3ctx.mkInt(tbl.get(var)))
-                            );
+                            z3ctx.mkSub((ArithExpr) var, z3ctx.mkInt(tbl.get(var)))
+                    );
                 }
                 clauses.add(z3ctx.mkAnd(
-                            (BoolExpr)orig,
-                            (BoolExpr)dest,
-                            (BoolExpr)substInput
-                            ));
+                        (BoolExpr) orig,
+                        (BoolExpr) dest,
+                        (BoolExpr) substInput
+                ));
             }
             if (this.rc != null) {
                 Expr orig = r1.toExpr();
                 Expr dest = this.rc;
                 Expr substInput = input;
                 Map<Expr, Integer> tbl = transMap.get(r1).deltaTbl;
-                for (Expr var: tbl.keySet()) {
+                for (Expr var : tbl.keySet()) {
                     orig = orig.substitute(var,
-                            z3ctx.mkSub((ArithExpr)var, z3ctx.mkInt(tbl.get(var)))
-                            );
+                            z3ctx.mkSub((ArithExpr) var, z3ctx.mkInt(tbl.get(var)))
+                    );
                     substInput = substInput.substitute(var,
-                            z3ctx.mkSub((ArithExpr)var, z3ctx.mkInt(tbl.get(var)))
-                            );
+                            z3ctx.mkSub((ArithExpr) var, z3ctx.mkInt(tbl.get(var)))
+                    );
                 }
                 clauses.add(z3ctx.mkAnd(
-                            (BoolExpr)orig,
-                            (BoolExpr)dest,
-                            (BoolExpr)substInput
-                            ));
+                        (BoolExpr) orig,
+                        (BoolExpr) dest,
+                        (BoolExpr) substInput
+                ));
             }
         }
         clauses.add(input);
@@ -203,14 +204,14 @@ public class Transf {
         this.lastRunIterCount = 0;
         // Timeout count
         int timeout = 8;
-        while(true) {
+        while (true) {
             this.lastRunIterCount++;
             //System.out.println("Iteration: " + this.lastRunIterCount);
             Expr expanded = this.localExpand(init);
             //System.out.println("localExpand: " + expanded.toString());
             expanded = this.switchExpand(expanded);
             //System.out.println("switchExpand: " + expanded.toString());
-            if (!this.isExpanded(init, expanded)){
+            if (!this.isExpanded(init, expanded)) {
                 return expanded;
             }
             init = expanded;
@@ -222,7 +223,7 @@ public class Transf {
 
     public void addMap(Region r, int[] deltas) {
         // Input format must match
-        if ( deltas.length != vars.size() ) {
+        if (deltas.length != vars.size()) {
             return;
         }
 
@@ -236,11 +237,11 @@ public class Transf {
     }
 
     public static void splitDisj(Expr expr, List<Expr> conjs) {
-        Expr [] args;
+        Expr[] args;
 
         if (expr.isOr()) {
             args = expr.getArgs();
-            for (Expr arg: args) {
+            for (Expr arg : args) {
                 splitDisj(arg, conjs);
             }
         } else {
@@ -255,7 +256,7 @@ public class Transf {
         if (!nonCond.isEq()) {
             return false;
         }
-        Expr[] args  = nonCond.getArgs();
+        Expr[] args = nonCond.getArgs();
         if (!args[0].isConst()) {
             return false;
         }
@@ -282,7 +283,7 @@ public class Transf {
             return false;
         }
 
-        if (!subargs[1].isIntNum())  {
+        if (!subargs[1].isIntNum()) {
             return false;
         }
 
@@ -291,7 +292,7 @@ public class Transf {
         }
 
         if (add) {
-        deltas.put(subargs[0], Integer.valueOf(subargs[1].toString()));
+            deltas.put(subargs[0], Integer.valueOf(subargs[1].toString()));
         } else {
             deltas.put(subargs[0], -Integer.valueOf(subargs[1].toString()));
         }
@@ -299,10 +300,11 @@ public class Transf {
         return true;
     }
 
-    
+
     public static Expr mkAlt(Expr v, Context ctx) {
         return ctx.mkIntConst(v.toString() + "!alt");
     }
+
     public static Expr mkAlt(Expr e, List<Expr> v, Context ctx) {
         Expr result = e;
         for (Expr c : v) {
@@ -312,7 +314,7 @@ public class Transf {
         return result;
     }
 
-    public static boolean getDeltaBySMT(List<Expr>nonConds, Map<String, Expr> vars, Map<Expr, Integer> deltas, Context ctx) {
+    public static boolean getDeltaBySMT(List<Expr> nonConds, Map<String, Expr> vars, Map<Expr, Integer> deltas, Context ctx) {
 
         List<Expr> allVars = new ArrayList<Expr>();
         Map<String, Expr> pVars = new HashMap<String, Expr>();
@@ -327,40 +329,40 @@ public class Transf {
         Map<String, Expr> rExprs = new HashMap<String, Expr>();
 
         Solver s = ctx.mkSolver();
-        for (Expr e: nonConds) {
-            s.add((BoolExpr)e);
+        for (Expr e : nonConds) {
+            s.add((BoolExpr) e);
         }
         // Save state
         s.push();
-        
+
         // Add the delta expressions
         BoolExpr base = ctx.mkTrue();
         for (String name : vars.keySet()) {
-            base = ctx.mkAnd(base, ctx.mkEq(pVars.get(name), ctx.mkAdd((ArithExpr)vars.get(name), (ArithExpr)cVars.get(name))));
+            base = ctx.mkAnd(base, ctx.mkEq(pVars.get(name), ctx.mkAdd((ArithExpr) vars.get(name), (ArithExpr) cVars.get(name))));
         }
         s.add(base);
 
         // Save state
         s.push();
-        
+
         // Check if unique solution exists
-        for (Expr e: nonConds) {
-            s.add((BoolExpr)mkAlt(e, allVars, ctx));
+        for (Expr e : nonConds) {
+            s.add((BoolExpr) mkAlt(e, allVars, ctx));
         }
-        s.add((BoolExpr)mkAlt(base, allVars, ctx));
+        s.add((BoolExpr) mkAlt(base, allVars, ctx));
         for (String name : cVars.keySet()) {
             s.add(ctx.mkNot(ctx.mkEq(cVars.get(name), mkAlt(cVars.get(name), ctx))));
         }
 
         Status sts = s.check();
-        if (sts != Status.UNSATISFIABLE){
+        if (sts != Status.UNSATISFIABLE) {
             return false;
         }
 
         s.pop();
         // Solve the deltas
         sts = s.check();
-        if (sts != Status.SATISFIABLE){
+        if (sts != Status.SATISFIABLE) {
             return false;
         }
 
@@ -379,7 +381,7 @@ public class Transf {
         // Now check if they are constants 
         base = ctx.mkTrue();
         for (String name : vars.keySet()) {
-            base = ctx.mkAnd(base, ctx.mkEq(pVars.get(name), ctx.mkAdd((ArithExpr)vars.get(name), (ArithExpr)rExprs.get(name))));
+            base = ctx.mkAnd(base, ctx.mkEq(pVars.get(name), ctx.mkAdd((ArithExpr) vars.get(name), (ArithExpr) rExprs.get(name))));
         }
         s.add(ctx.mkNot(base));
         sts = s.check();
@@ -435,7 +437,7 @@ public class Transf {
 
 
             boolean done = true;
-            for(Expr nonCond : nonConds) {
+            for (Expr nonCond : nonConds) {
                 done = done && getDeltaBySyntax(nonCond, vars, delta_map);
             }
 
@@ -461,7 +463,7 @@ public class Transf {
                 regions = new Region[1];
                 regions[0] = new Region(vars, ctx);
                 int[] allzero = new int[size];
-                for(int j = 0; j < size; j++) {
+                for (int j = 0; j < size; j++) {
                     allzero[j] = 0;
                 }
                 regions[0].addCond(allzero, 1);
@@ -482,7 +484,7 @@ public class Transf {
         // First eliminate ->
         if (expr.isImplies()) {
             Expr[] args = expr.getArgs();
-            return z3ctx.mkOr(z3ctx.mkNot((BoolExpr)eliminateImpEq(args[0])), (BoolExpr)eliminateImpEq(args[1]));
+            return z3ctx.mkOr(z3ctx.mkNot((BoolExpr) eliminateImpEq(args[0])), (BoolExpr) eliminateImpEq(args[1]));
         }
         // Then eliminate <->
         if (expr.isEq()) {
@@ -490,35 +492,35 @@ public class Transf {
             // Equality between arithmetic exprs should be preserved
             // Only eliminate equality between booleans
             if (args[0].isBool() && args[1].isBool()) {
-                BoolExpr e1 = (BoolExpr)eliminateImpEq(args[0]);
-                BoolExpr e2 = (BoolExpr)eliminateImpEq(args[1]);
+                BoolExpr e1 = (BoolExpr) eliminateImpEq(args[0]);
+                BoolExpr e2 = (BoolExpr) eliminateImpEq(args[1]);
                 return z3ctx.mkOr(z3ctx.mkAnd(e1, e2), z3ctx.mkAnd(z3ctx.mkNot(e1), z3ctx.mkNot(e2)));
             }
         }
         // Also need to eliminate ITE
         if (expr.isITE()) {
             Expr[] args = expr.getArgs();
-            BoolExpr e1 = (BoolExpr)eliminateImpEq(args[0]);
-            BoolExpr e2 = (BoolExpr)eliminateImpEq(args[1]);
-            BoolExpr e3 = (BoolExpr)eliminateImpEq(args[2]);
+            BoolExpr e1 = (BoolExpr) eliminateImpEq(args[0]);
+            BoolExpr e2 = (BoolExpr) eliminateImpEq(args[1]);
+            BoolExpr e3 = (BoolExpr) eliminateImpEq(args[2]);
             return z3ctx.mkOr(z3ctx.mkAnd(z3ctx.mkNot(e1), e3), z3ctx.mkAnd(e1, e2));
         }
         // Other kind of expression should do the elimination recursively
         if (expr.isNot()) {
             Expr[] args = expr.getArgs();
-            return z3ctx.mkNot((BoolExpr)eliminateImpEq(args[0]));
+            return z3ctx.mkNot((BoolExpr) eliminateImpEq(args[0]));
         }
         if (expr.isAnd()) {
             List<Expr> argList = new ArrayList<Expr>();
-            for (Expr e: expr.getArgs()) {
-                argList.add(eliminateImpEq((BoolExpr)e));
+            for (Expr e : expr.getArgs()) {
+                argList.add(eliminateImpEq((BoolExpr) e));
             }
             return z3ctx.mkAnd(argList.toArray(new BoolExpr[argList.size()]));
         }
         if (expr.isOr()) {
             List<Expr> argList = new ArrayList<Expr>();
-            for (Expr e: expr.getArgs()) {
-                argList.add(eliminateImpEq((BoolExpr)e));
+            for (Expr e : expr.getArgs()) {
+                argList.add(eliminateImpEq((BoolExpr) e));
             }
             return z3ctx.mkOr(argList.toArray(new BoolExpr[argList.size()]));
         }
@@ -542,38 +544,38 @@ public class Transf {
             }
             if (arg.isAnd()) {
                 List<Expr> argList = new ArrayList<Expr>();
-                for (Expr e: arg.getArgs()) {
-                    argList.add(pushNegIn(z3ctx.mkNot((BoolExpr)e)));
+                for (Expr e : arg.getArgs()) {
+                    argList.add(pushNegIn(z3ctx.mkNot((BoolExpr) e)));
                 }
                 return z3ctx.mkOr(argList.toArray(new BoolExpr[argList.size()]));
             }
             if (arg.isOr()) {
                 List<Expr> argList = new ArrayList<Expr>();
-                for (Expr e: arg.getArgs()) {
-                    argList.add(pushNegIn(z3ctx.mkNot((BoolExpr)e)));
+                for (Expr e : arg.getArgs()) {
+                    argList.add(pushNegIn(z3ctx.mkNot((BoolExpr) e)));
                 }
                 return z3ctx.mkAnd(argList.toArray(new BoolExpr[argList.size()]));
             }
             // Should be (not ...atomic...) here
-            return z3ctx.mkNot((BoolExpr)pushNegIn(arg));
+            return z3ctx.mkNot((BoolExpr) pushNegIn(arg));
         }
         if (expr.isAnd()) {
             List<Expr> argList = new ArrayList<Expr>();
-            for (Expr e: expr.getArgs()) {
-                argList.add(pushNegIn((BoolExpr)e));
+            for (Expr e : expr.getArgs()) {
+                argList.add(pushNegIn((BoolExpr) e));
             }
             return z3ctx.mkAnd(argList.toArray(new BoolExpr[argList.size()]));
         }
         if (expr.isOr()) {
             List<Expr> argList = new ArrayList<Expr>();
-            for (Expr e: expr.getArgs()) {
-                argList.add(pushNegIn((BoolExpr)e));
+            for (Expr e : expr.getArgs()) {
+                argList.add(pushNegIn((BoolExpr) e));
             }
             return z3ctx.mkOr(argList.toArray(new BoolExpr[argList.size()]));
         }
         if (expr.isITE()) {
             Expr[] args = expr.getArgs();
-            return z3ctx.mkITE((BoolExpr)pushNegIn(args[0]), pushNegIn(args[1]), pushNegIn(args[2]));
+            return z3ctx.mkITE((BoolExpr) pushNegIn(args[0]), pushNegIn(args[1]), pushNegIn(args[2]));
         }
         if (Region.isAtom(expr)) {
             return expr;
@@ -591,15 +593,15 @@ public class Transf {
         }
         if (expr.isOr()) {
             List<Expr> argList = new ArrayList<Expr>();
-            for (Expr e: expr.getArgs()) {
-                argList.add(convertNNFToDNF((BoolExpr)e));
+            for (Expr e : expr.getArgs()) {
+                argList.add(convertNNFToDNF((BoolExpr) e));
             }
             return z3ctx.mkOr(argList.toArray(new BoolExpr[argList.size()]));
         }
         if (expr.isAnd()) {
             List<Expr> orList = new ArrayList<Expr>();
             List<Expr> otherList = new ArrayList<Expr>();
-            for (Expr e: expr.getArgs()) {
+            for (Expr e : expr.getArgs()) {
                 // First convert all the subformulae to DNF format
                 e = convertNNFToDNF(e);
                 // Store "or" subformula and other (including "and" and "not") subformula into different list
@@ -626,7 +628,7 @@ public class Transf {
             }
             // distribute /\ over \/
             Expr result = z3ctx.mkFalse();
-            for (Expr orExpr: orList) {
+            for (Expr orExpr : orList) {
                 result = distributeAnd(result, orExpr, andExpr);
             }
             return result;
@@ -666,36 +668,36 @@ public class Transf {
         if (or1.isFalse()) {
             // Consider the case where or1 is False in the first iteration
             List<Expr> ors = new ArrayList<Expr>();
-            for (Expr e2: or2Args) {
+            for (Expr e2 : or2Args) {
                 if (and == null) {
                     // If "and" is null, then no need to conjuct "and" with subformula of "or"
                     // Simply return the original subformula to eliminate redundant (and ...)
                     ors.add(e2);
                 } else {
-                    ors.add(z3ctx.mkAnd((BoolExpr)e2, (BoolExpr)and));
+                    ors.add(z3ctx.mkAnd((BoolExpr) e2, (BoolExpr) and));
                 }
             }
             return z3ctx.mkOr(ors.toArray(new BoolExpr[ors.size()]));
         }
         if (and == null) {
             // If "and" is null, do not conjunct "and"
-            for (Expr e1: or1Args) {
-                for (Expr e2: or2Args) {
+            for (Expr e1 : or1Args) {
+                for (Expr e2 : or2Args) {
                     if (ret.isFalse()) {
                         // Consider the case where ret is False in the first iteration
-                        ret = z3ctx.mkAnd((BoolExpr)e1, (BoolExpr)e2);
+                        ret = z3ctx.mkAnd((BoolExpr) e1, (BoolExpr) e2);
                     } else {
-                        ret = z3ctx.mkOr((BoolExpr)ret, z3ctx.mkAnd((BoolExpr)e1, (BoolExpr)e2));
+                        ret = z3ctx.mkOr((BoolExpr) ret, z3ctx.mkAnd((BoolExpr) e1, (BoolExpr) e2));
                     }
                 }
             }
         } else {
-            for (Expr e1: or1Args) {
-                for (Expr e2: or2Args) {
+            for (Expr e1 : or1Args) {
+                for (Expr e2 : or2Args) {
                     if (ret.isFalse()) {
-                        ret = z3ctx.mkAnd((BoolExpr)e1, (BoolExpr)e2, (BoolExpr)and);
+                        ret = z3ctx.mkAnd((BoolExpr) e1, (BoolExpr) e2, (BoolExpr) and);
                     } else {
-                        ret = z3ctx.mkOr((BoolExpr)ret, z3ctx.mkAnd((BoolExpr)e1, (BoolExpr)e2, (BoolExpr)and));
+                        ret = z3ctx.mkOr((BoolExpr) ret, z3ctx.mkAnd((BoolExpr) e1, (BoolExpr) e2, (BoolExpr) and));
                     }
                 }
             }
@@ -712,15 +714,15 @@ public class Transf {
         }
         if (expr.isAnd()) {
             List<Expr> argList = new ArrayList<Expr>();
-            for (Expr e: expr.getArgs()) {
-                argList.add(convertNNFToCNF((BoolExpr)e));
+            for (Expr e : expr.getArgs()) {
+                argList.add(convertNNFToCNF((BoolExpr) e));
             }
             return z3ctx.mkAnd(argList.toArray(new BoolExpr[argList.size()]));
         }
         if (expr.isOr()) {
             List<Expr> andList = new ArrayList<Expr>();
             List<Expr> otherList = new ArrayList<Expr>();
-            for (Expr e: expr.getArgs()) {
+            for (Expr e : expr.getArgs()) {
                 // First convert all the subformulae to CNF format
                 e = convertNNFToCNF(e);
                 // Store "and" subformula and other (including "or" and "not") subformula into different list
@@ -747,7 +749,7 @@ public class Transf {
             }
             // distribute \/ over /\
             Expr result = z3ctx.mkTrue();
-            for (Expr andExpr: andList) {
+            for (Expr andExpr : andList) {
                 result = distributeOr(result, andExpr, orExpr);
             }
             return result;
@@ -788,36 +790,36 @@ public class Transf {
         if (and1.isTrue()) {
             // Consider the case where and1 is True in the first iteration
             List<Expr> ands = new ArrayList<Expr>();
-            for (Expr e2: and2Args) {
+            for (Expr e2 : and2Args) {
                 if (or == null) {
                     // If "or" is null, then no need to disjuct "or" with subformula of "or"
                     // Simply return the original subformula to eliminate redundant (or ...)
                     ands.add(e2);
                 } else {
-                    ands.add(z3ctx.mkOr((BoolExpr)e2, (BoolExpr)or));
+                    ands.add(z3ctx.mkOr((BoolExpr) e2, (BoolExpr) or));
                 }
             }
             return z3ctx.mkAnd(ands.toArray(new BoolExpr[ands.size()]));
         }
         if (or == null) {
             // If "or" is null, do not disjunct "or"
-            for (Expr e1: and1Args) {
-                for (Expr e2: and2Args) {
+            for (Expr e1 : and1Args) {
+                for (Expr e2 : and2Args) {
                     if (ret.isTrue()) {
                         // Consider the case where ret is True in the first iteration
-                        ret = z3ctx.mkOr((BoolExpr)e1, (BoolExpr)e2);
+                        ret = z3ctx.mkOr((BoolExpr) e1, (BoolExpr) e2);
                     } else {
-                        ret = z3ctx.mkAnd((BoolExpr)ret, z3ctx.mkOr((BoolExpr)e1, (BoolExpr)e2));
+                        ret = z3ctx.mkAnd((BoolExpr) ret, z3ctx.mkOr((BoolExpr) e1, (BoolExpr) e2));
                     }
                 }
             }
         } else {
-            for (Expr e1: and1Args) {
-                for (Expr e2: and2Args) {
+            for (Expr e1 : and1Args) {
+                for (Expr e2 : and2Args) {
                     if (ret.isTrue()) {
-                        ret = z3ctx.mkOr((BoolExpr)e1, (BoolExpr)e2, (BoolExpr)or);
+                        ret = z3ctx.mkOr((BoolExpr) e1, (BoolExpr) e2, (BoolExpr) or);
                     } else {
-                        ret = z3ctx.mkAnd((BoolExpr)ret, z3ctx.mkOr((BoolExpr)e1, (BoolExpr)e2, (BoolExpr)or));
+                        ret = z3ctx.mkAnd((BoolExpr) ret, z3ctx.mkOr((BoolExpr) e1, (BoolExpr) e2, (BoolExpr) or));
                     }
                 }
             }

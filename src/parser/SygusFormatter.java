@@ -1,4 +1,5 @@
 import java.util.*;
+
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.*;
 import com.microsoft.z3.*;
@@ -14,16 +15,18 @@ public class SygusFormatter extends SygusBaseVisitor<String> {
             return nextResult;
         }
         if (aggregate.endsWith(" ") ||
-            nextResult.startsWith(" ") ||
-            aggregate.endsWith("(") ||
-            nextResult.startsWith(")")) {
+                nextResult.startsWith(" ") ||
+                aggregate.endsWith("(") ||
+                nextResult.startsWith(")")) {
             return aggregate + nextResult;
         }
         return aggregate + " " + nextResult;
     }
 
     @Override
-    protected String defaultResult() { return ""; }
+    protected String defaultResult() {
+        return "";
+    }
 
     @Override
     public String visitTerminal(TerminalNode node) {
@@ -33,8 +36,8 @@ public class SygusFormatter extends SygusBaseVisitor<String> {
     @Override
     public String visitTerm(SygusParser.TermContext ctx) {
         if (ctx.symbol() != null && ctx.symbol().getText().equals("-") &&
-            ctx.termStar().termStar().getChildCount() == 0 &&
-            ctx.termStar().term().literal() != null) {
+                ctx.termStar().termStar().getChildCount() == 0 &&
+                ctx.termStar().term().literal() != null) {
             return "-" + ctx.termStar().term().literal().getText();
         }
         return this.visitChildren(ctx);
@@ -47,7 +50,7 @@ public class SygusFormatter extends SygusBaseVisitor<String> {
 
         boolean visited;
         Expr expr, newExpr, body;
-        Expr [] args, newArgsArray;
+        Expr[] args, newArgsArray;
         List<Expr> newArgs = new ArrayList<Expr>();
         while (!todo.empty()) {
             expr = todo.peek();
@@ -58,7 +61,7 @@ public class SygusFormatter extends SygusBaseVisitor<String> {
                 visited = true;
                 newArgs.clear();
                 args = expr.getArgs();
-                for (Expr arg: args) {
+                for (Expr arg : args) {
                     if (!cache.containsKey(arg)) {
                         todo.push(arg);
                         visited = false;
@@ -70,21 +73,21 @@ public class SygusFormatter extends SygusBaseVisitor<String> {
                     todo.pop();
                     newArgsArray = newArgs.toArray(new Expr[newArgs.size()]);
                     if (expr.isITE() && expr.isBool()) {
-                        BoolExpr condTerm = (BoolExpr)newArgsArray[0];
-                        BoolExpr thenTerm = (BoolExpr)newArgsArray[1];
-                        BoolExpr elseTerm = (BoolExpr)newArgsArray[2];
+                        BoolExpr condTerm = (BoolExpr) newArgsArray[0];
+                        BoolExpr thenTerm = (BoolExpr) newArgsArray[1];
+                        BoolExpr elseTerm = (BoolExpr) newArgsArray[2];
                         newExpr = ctx.mkOr(ctx.mkAnd(condTerm, thenTerm),
-                                            ctx.mkAnd(ctx.mkNot(condTerm), elseTerm));
+                                ctx.mkAnd(ctx.mkNot(condTerm), elseTerm));
                     } else {
                         newExpr = expr.update(newArgsArray);
                     }
                     cache.put(expr, newExpr);
                 }
-            } else if(expr.isQuantifier()) {
-                body = ((Quantifier)expr).getBody();
+            } else if (expr.isQuantifier()) {
+                body = ((Quantifier) expr).getBody();
                 if (cache.containsKey(body)) {
                     todo.pop();
-                    newExpr = expr.update(new Expr[]{ cache.get(body) });
+                    newExpr = expr.update(new Expr[]{cache.get(body)});
                     cache.put(expr, newExpr);
                 } else {
                     todo.push(body);
