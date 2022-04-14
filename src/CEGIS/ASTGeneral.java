@@ -1,9 +1,11 @@
 import java.util.*;
+
 import com.microsoft.z3.*;
 
 public class ASTGeneral {
     public String node;
     public List<ASTGeneral> children = new ArrayList<ASTGeneral>();
+
     public String toString() {
         if (children.size() == 0) {
             return node;
@@ -16,14 +18,17 @@ public class ASTGeneral {
             return "(" + String.join(" ", strs) + ")";
         }
     }
+
     public ASTGeneral() {
     }
-    public ASTGeneral(String node, ASTGeneral ... childNodes) {
+
+    public ASTGeneral(String node, ASTGeneral... childNodes) {
         this.node = node;
         for (ASTGeneral ast : childNodes) {
             this.children.add(ast);
         }
     }
+
     // All recursive algorithms here,
     // cound move to cache based dynamic programming if
     // this becomes the bottleneck in the future
@@ -47,7 +52,7 @@ public class ASTGeneral {
         if (this.getClass() != o.getClass()) {
             return false;
         }
-        ASTGeneral ast = (ASTGeneral)o;
+        ASTGeneral ast = (ASTGeneral) o;
         if (!ast.node.equals(this.node)) {
             return false;
         }
@@ -58,7 +63,7 @@ public class ASTGeneral {
         for (int i = 0; i < this.children.size(); i++) {
             result = this.children.get(i).equals(ast.children.get(i)) && result;
         }
-         return result;
+        return result;
     }
 
     @Override
@@ -85,7 +90,7 @@ public class ASTGeneral {
 
         boolean visited;
         List<ASTGeneral> newChildren = new ArrayList<ASTGeneral>();
-        while(!todo.empty()) {
+        while (!todo.empty()) {
             ASTGeneral tree = todo.peek();
             if (tree.isLeaf()) {
                 todo.pop();
@@ -94,7 +99,7 @@ public class ASTGeneral {
                 visited = true;
                 newChildren.clear();
                 for (ASTGeneral child : tree.children) {
-                    if(!cache.containsKey(child)) {
+                    if (!cache.containsKey(child)) {
                         todo.push(child);
                         visited = false;
                     } else {

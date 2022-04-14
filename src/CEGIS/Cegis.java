@@ -1,7 +1,7 @@
 import java.util.*;
 import com.microsoft.z3.*;
 import java.util.logging.Logger;
-import com.microsoft.z3.enumerations.Z3_ast_print_mode;
+// import com.microsoft.z3.enumerations.Z3_ast_print_mode;
 import com.microsoft.z3.enumerations.Z3_decl_kind;
 
 public class Cegis extends Thread{
