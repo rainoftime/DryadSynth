@@ -1,12 +1,21 @@
 import java.util.*;
 
 import com.microsoft.z3.*;
-
+// import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 // import com.microsoft.z3.enumerations.Z3_ast_print_mode;
 import com.microsoft.z3.enumerations.Z3_decl_kind;
 
 public class Cegis extends Thread {
+
+
+    // Profile
+    boolean doProfiling = true;
+    long verifyTotalTime = 0;
+    long guessTotalTime = 0;
+    int verityNumber = 0;
+    int guessNumber = 0;
+    // End
 
     protected Context ctx;
     protected SygusProblem problem;
@@ -125,6 +134,14 @@ public class Cegis extends Thread {
     // 	return this.env.triedProblem;
     // }
 
+    public void reportStats() {
+        // TODO: maybe use logging
+        System.out.print("Verify number: ");
+        System.out.println(this.verityNumber);
+        System.out.print("Verify time: ");
+        System.out.println(this.verifyTotalTime / 1000000.0);
+    }
+
     public void setInputIterLimit(int input) {
         this.inputIterLimit = input;
     }
@@ -213,9 +230,9 @@ public class Cegis extends Thread {
 
             Status status = s.check();
             s.pop();
+
             return status;
             //return Status.UNSATISFIABLE;
-
         }
 
         public Model getLastModel() {
@@ -312,9 +329,7 @@ public class Cegis extends Thread {
             }
 
             s.add(q);
-
             Status sts = s.check();
-
             if (sts == Status.SATISFIABLE) {
                 m = s.getModel();
             }
@@ -714,6 +729,7 @@ public class Cegis extends Thread {
     }
 
     public void run() {
+        // System.out.println("Running.....!\n");
         env.runningThreads.incrementAndGet();
         if (problem.isGeneral) {
             logger.info(Thread.currentThread().getName() + " Started");
@@ -732,6 +748,7 @@ public class Cegis extends Thread {
                     env.notify();
                 }
                 env.runningThreads.decrementAndGet();
+
                 return;
             }
             // Initialize expand here for max data sharing
@@ -756,6 +773,7 @@ public class Cegis extends Thread {
                 cegisGeneral();
             }
             env.runningThreads.decrementAndGet();
+
             return;
         }
 
@@ -804,7 +822,12 @@ public class Cegis extends Thread {
                                 resultfunc.put(f.getName(), f.getDef());
                             }
 
+                            long verifyStartTime = System.nanoTime();
                             Status v = testVerifier.verify(resultfunc);
+                            this.verifyTotalTime += System.nanoTime() - verifyStartTime;
+                            this.verityNumber += 1;
+
+
                             logger.info("Final check status: " + v);
                             if (v == Status.SATISFIABLE) {
                                 // 	NO SOLUTION
@@ -822,6 +845,7 @@ public class Cegis extends Thread {
                             env.notify();
                         }
                         env.runningThreads.decrementAndGet();
+
                         return;
                     }
 
@@ -840,6 +864,7 @@ public class Cegis extends Thread {
                 results = gradualSynth();
             }
             env.runningThreads.decrementAndGet();
+
             return;
         }
 
@@ -865,6 +890,7 @@ public class Cegis extends Thread {
                 env.notify();
             }
             env.runningThreads.decrementAndGet();
+
             return;
         }
         if (pdc1D != null) {
@@ -877,6 +903,7 @@ public class Cegis extends Thread {
                         env.notify();
                     }
                     env.runningThreads.decrementAndGet();
+
                     return;
                 }
             }
@@ -895,6 +922,7 @@ public class Cegis extends Thread {
                         env.notify();
                     }
                     env.runningThreads.decrementAndGet();
+
                     return;
                 }
             }
@@ -1023,7 +1051,11 @@ public class Cegis extends Thread {
             }
             logger.info("Start verifying");
 
+            long verifyStartTime= System.nanoTime();
             Status v = testVerifier.verify(functions);
+            this.verifyTotalTime += System.nanoTime() - verifyStartTime;
+            this.verityNumber += 1;
+
 
             if (v == Status.UNSATISFIABLE) {
                 SynthDecoder synthDecoder = this.createSynthDecoder(testSynthesizer);
@@ -1227,7 +1259,10 @@ public class Cegis extends Thread {
 
             logger.info("Start verifying");
 
+            long verifyStartTime= System.nanoTime();
             Status v = testVerifier.verify(functions);
+            this.verifyTotalTime += System.nanoTime() - verifyStartTime;
+            this.verityNumber += 1;
 
             if (v == Status.UNSATISFIABLE) {
                 results = new DefinedFunc[problem.rdcdRequests.size()];
@@ -1429,7 +1464,10 @@ public class Cegis extends Thread {
 
             logger.info("Start verifying");
 
+            long verifyStartTime= System.nanoTime();
             Status v = testVerifier.verify(functions);
+            this.verifyTotalTime += System.nanoTime() - verifyStartTime;
+            this.verityNumber += 1;
 
             if (v == Status.UNSATISFIABLE) {
                 DefinedFunc[] func = new DefinedFunc[problem.rdcdRequests.size()];
@@ -1586,7 +1624,12 @@ public class Cegis extends Thread {
             for (DefinedFunc f : combined) {
                 resultfunc.put(f.getName(), f.getDef());
             }
+
+            long verifyStartTime= System.nanoTime();
             Status v = testVerifier.verify(resultfunc);
+            this.verifyTotalTime += System.nanoTime() - verifyStartTime;
+            this.verityNumber += 1;
+
             if (v == Status.SATISFIABLE) {
                 // 	NO SOLUTION
                 logger.info("There is no invariant for this benchmark.");

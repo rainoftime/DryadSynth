@@ -449,6 +449,10 @@ public class SygusDispatcher {
     }
 
     public DefinedFunc[] runAlgorithm() throws Exception {
+        // TODO: confirm if this function is only run once
+
+        long algoStartTime = System.nanoTime();
+
         if (this.method == SolveMethod.PRESCREENED) {
             logger.info("Outputing parsed candidates as results.");
             List<DefinedFunc> resList = new ArrayList<DefinedFunc>();
@@ -670,8 +674,20 @@ public class SygusDispatcher {
                 }
             }
         }
-        return results;
 
+        long endTime = System.nanoTime();
+
+        // For profiling
+        for (int i = 0; i < threads.length; i ++) {
+            if (threads[i] instanceof Cegis) {
+                ((Cegis) threads[i]).reportStats();
+            }
+        }
+        System.out.print("Algo time: ");
+        System.out.print((endTime - algoStartTime) / 1000000.0);
+        System.out.print("\n");
+
+        return results;
     }
 
     boolean iteConverted = true;

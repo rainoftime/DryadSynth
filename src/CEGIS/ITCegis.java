@@ -9,7 +9,7 @@ public class ITCegis extends Cegis {
         DISJ,
         CONJ,
         MAX,
-        MIN;
+        MIN
     }
 
     public Expr[] lastCands = null;
